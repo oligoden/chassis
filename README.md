@@ -4,7 +4,7 @@ A MVC that handles storage and authorisation.
 ## Installation
 
 ```bash
-go get github.com/oligoden/chassis.git
+go get github.com/oligoden/chassis
 ```
 
 ## Usage
