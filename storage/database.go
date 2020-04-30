@@ -23,11 +23,11 @@ type DBReader interface {
 }
 
 type dbReader interface {
-	// Where(interface{}, ...interface{}) DBReader
+	Where(interface{}, ...interface{}) DBReader
 	First(interface{}, ...string)
 	Find(interface{}, ...string)
-	// Preload(string, string) DBReader
-	// NewRecord(interface{}) bool
+	Preload(string, string) DBReader
+	NewRecord(interface{}) bool
 	// ReaderToAssociater() DBAssociater
 	// ReaderToCreater() DBCreater
 	// ReaderToUpdater() DBUpdater

@@ -8,7 +8,71 @@ import (
 	"github.com/oligoden/chassis/storage/gormdb"
 )
 
-func TestReadWithError(t *testing.T) {
+func TestReadWhere(t *testing.T) {
+	cleanDBUserTables()
+	setupDBTable(&TestModel{})
+
+	db, err := gorm.Open(dbt, uri)
+	if err != nil {
+		t.Error(err)
+	}
+	db.LogMode(true)
+	m := &TestModel{Field: "a", Perms: ":::r"}
+	db.Create(m)
+	db.Close()
+
+	storage := gormdb.New(dbt, uri)
+	dbRead := storage.ReadDB(0, []uint{})
+	m = &TestModel{}
+	dbRead.Where("testmodels.test_model_id = ?", 1).First(m)
+	dbRead.Close()
+	if dbRead.Error() != nil {
+		t.Error(dbRead.Error())
+	}
+
+	exp := uint(1)
+	got := m.TestModelID
+	if exp != got {
+		t.Errorf(`expected "%d", got "%d"`, exp, got)
+	}
+}
+
+func TestReadNewRecord(t *testing.T) {
+	cleanDBUserTables()
+	setupDBTable(&TestModel{})
+
+	db, err := gorm.Open(dbt, uri)
+	if err != nil {
+		t.Error(err)
+	}
+	db.LogMode(true)
+	m := &TestModel{Field: "a", Perms: ":::r"}
+	db.Create(m)
+	db.Close()
+
+	storage := gormdb.New(dbt, uri)
+	dbRead := storage.ReadDB(0, []uint{})
+	m = &TestModel{}
+	if !dbRead.NewRecord(m) {
+		t.Errorf(`expected new record`)
+	}
+	dbRead.First(m)
+	if dbRead.NewRecord(m) {
+		t.Errorf(`expected existing record`)
+	}
+	dbRead.Close()
+	if dbRead.Error() != nil {
+		t.Error(dbRead.Error())
+	}
+
+	exp := uint(1)
+	got := m.TestModelID
+	if exp != got {
+		t.Errorf(`expected "%d", got "%d"`, exp, got)
+	}
+}
+
+func TestReadFirstWithError(t *testing.T) {
 	cleanDBUserTables()
 	setupDBTable(&TestModel{})
 
@@ -41,146 +105,148 @@ func TestReadWithError(t *testing.T) {
 }
 
 func TestReadFirst(t *testing.T) {
+	cleanDBUserTables()
+	setupDBTable(&TestModel{})
+	setupDBTable(&SubModel{})
+	setupDBTable(&WeakModel{})
+
 	db, err := gorm.Open(dbt, uri)
 	if err != nil {
 		t.Error(err)
 	}
 	db.LogMode(true)
-
-	cleanDBUserTables()
-	storage := gormdb.New(dbt, uri)
-
-	mGroup := &gormdb.Group{Owner: 1}
-	db.Create(mGroup)
-	mGroup = &gormdb.Group{Owner: 2}
-	db.Create(mGroup)
-	mRecordGroup := &gormdb.RecordGroup{
-		GroupID:  1,
-		RecordID: "a",
-		Owner:    2,
-	}
-	db.Create(mRecordGroup)
-	setupDBTable(&TestModel{}, db)
-
-	testCases := []struct {
-		desc       string
-		user       uint
-		recOwnerID uint
-		groups     []uint
-		perms      string
-		setField   string
-		expField   string
-	}{
-		{
-			desc:     "Pass_Z",
-			user:     0,
-			groups:   []uint{},
-			perms:    ":::r",
-			setField: "a",
-			expField: "a",
-		},
-		{
-			desc:     "AuthFail_Z",
-			user:     0,
-			groups:   []uint{},
-			perms:    ":::",
-			setField: "a",
-			expField: "",
-		},
-		{
-			desc:     "Pass_A",
-			user:     1,
-			groups:   []uint{},
-			perms:    "::r:",
-			setField: "b",
-			expField: "b",
-		},
-		{
-			desc:     "AuthFail1_A",
-			user:     1,
-			groups:   []uint{},
-			perms:    ":::",
-			setField: "b",
-			expField: "",
-		},
-		{
-			desc:     "AuthFail2_A",
-			user:     0,
-			groups:   []uint{},
-			perms:    "::r:",
-			setField: "b",
-			expField: "",
-		},
-		{
-			desc:       "Pass_G",
-			user:       1,
-			groups:     []uint{2},
-			perms:      ":r::",
-			recOwnerID: 2,
-			setField:   "a",
-			expField:   "a",
-		},
-		{
-			desc:       "Pass_G_RecordGroup",
-			user:       1,
-			groups:     []uint{1},
-			perms:      ":r::",
-			recOwnerID: 2,
-			setField:   "a",
-			expField:   "a",
-		},
-		{
-			desc:     "Fail_G_missing_group",
-			user:     1,
-			groups:   []uint{},
-			perms:    ":r::",
-			setField: "a",
-			expField: "",
-		},
-		{
-			desc:     "Fail_G_missing_permission",
-			user:     1,
-			groups:   []uint{2},
-			perms:    ":::",
-			setField: "a",
-			expField: "",
-		},
-		{
-			desc:       "Pass_O",
-			user:       1,
-			groups:     []uint{},
-			perms:      ":::",
-			recOwnerID: 1,
-			setField:   "a",
-			expField:   "a",
-		},
-	}
-	for _, tC := range testCases {
-		t.Run(tC.desc, func(t *testing.T) {
-			setupDBTable(&TestModel{}, db)
-			m := &TestModel{
-				Field:   tC.expField,
-				Hash:    tC.expField,
-				Perms:   tC.perms,
-				OwnerID: tC.recOwnerID,
-			}
-			db.Create(m)
-
-			dbRead := storage.ReadDB(tC.user, tC.groups)
-			m = &TestModel{}
-			dbRead.First(m)
-			dbRead.Close()
-			if dbRead.Error() != nil {
-				t.Error(dbRead.Error())
-			}
-
-			exp := tC.expField
-			got := m.Field
-			if got != exp {
-				t.Errorf(`expected "%s", got "%s"`, exp, got)
-			}
-		})
-	}
-
+	m := &SubModel{Field: "a", Perms: ":::r"}
+	db.Create(m)
+	mWeakModel := &WeakModel{Field: "a", Perms: ":::r"}
+	db.Create(mWeakModel)
 	db.Close()
+
+	store := gormdb.New(dbt, uri)
+	dbRead := store.ReadDB(0, []uint{})
+	m = &SubModel{}
+	dbRead.First(m)
+	if dbRead.Error() != nil {
+		t.Error(dbRead.Error())
+	}
+	mWeakModel = &WeakModel{}
+	dbRead.First(mWeakModel, "weak_models")
+	if dbRead.Error() != nil {
+		t.Error(dbRead.Error())
+	}
+
+	exp := uint(1)
+	got := m.SubModelID
+	if exp != got {
+		t.Errorf(`expected "%d", got "%d"`, exp, got)
+	}
+	exp = uint(1)
+	got = mWeakModel.WeakModelID
+	if exp != got {
+		t.Errorf(`expected "%d", got "%d"`, exp, got)
+	}
+
+	dbRead.First(mWeakModel)
+	expErr := "model is not assertable as an table namer"
+	gotErr := dbRead.Error().Error()
+	if expErr != gotErr {
+		t.Errorf(`expected "%s", got "%s"`, expErr, gotErr)
+	}
+	dbRead.Close()
+}
+
+func TestReadPreloadWithError(t *testing.T) {
+	cleanDBUserTables()
+	setupDBTable(&TestModel{})
+	setupDBTable(&SubModel{})
+
+	db, err := gorm.Open(dbt, uri)
+	if err != nil {
+		t.Error(err)
+	}
+	db.LogMode(true)
+	m := &TestModel{Field: "a", Perms: ":::r"}
+	db.Create(m)
+	mSubModel := &SubModel{
+		UC:          "asd",
+		TestModelID: 1,
+		Field:       "a",
+		Perms:       ":::r",
+	}
+	db.Create(mSubModel)
+	mSubModel = &SubModel{
+		UC:          "gfd",
+		TestModelID: 1,
+		Field:       "a",
+		Perms:       ":::r",
+	}
+	db.Create(mSubModel)
+	db.Close()
+
+	// simulate error
+	storage := gormdb.New("", "")
+	dbRead := storage.ReadDB(0, []uint{})
+
+	if dbRead.Error() == nil {
+		t.Error(`expected error`)
+	}
+
+	m = &TestModel{}
+	dbRead.Preload("SubModels", "submodels").First(m)
+	dbRead.Close()
+
+	if len(m.SubModels) != 0 {
+		t.Error(`expected no preloaded submodels`)
+	}
+}
+
+func TestReadPreload(t *testing.T) {
+	cleanDBUserTables()
+	setupDBTable(&TestModel{})
+	setupDBTable(&SubModel{})
+
+	db, err := gorm.Open(dbt, uri)
+	if err != nil {
+		t.Error(err)
+	}
+	db.LogMode(true)
+	m := &TestModel{Field: "a", Perms: ":::r"}
+	db.Create(m)
+	mSubModel := &SubModel{
+		UC:          "asd",
+		TestModelID: 1,
+		Field:       "a",
+		Perms:       ":::r",
+	}
+	db.Create(mSubModel)
+	mSubModel = &SubModel{
+		UC:          "gfd",
+		TestModelID: 1,
+		Field:       "a",
+		Perms:       ":::r",
+	}
+	db.Create(mSubModel)
+	db.Close()
+
+	storage := gormdb.New(dbt, uri)
+	dbRead := storage.ReadDB(0, []uint{})
+	m = &TestModel{}
+	dbRead.Preload("SubModels", "submodels").First(m)
+	dbRead.Close()
+	if dbRead.Error() != nil {
+		t.Error(dbRead.Error())
+	}
+
+	if len(m.SubModels) == 0 {
+		t.Error(`expected preloaded submodels`)
+	}
+	exp := uint(1)
+	got := m.TestModelID
+	if exp != got {
+		t.Errorf(`expected "%d", got "%d"`, exp, got)
+	}
+	exp = uint(1)
+	got = m.SubModels[0].SubModelID
+	if exp != got {
+		t.Errorf(`expected "%d", got "%d"`, exp, got)
+	}
 }

@@ -103,10 +103,6 @@ func (TestModel) TableName() string {
 	return "testmodels"
 }
 
-func (TestModels) TableName() string {
-	return "testmodels"
-}
-
 func (m *TestModel) UniqueCode(uc ...string) string {
 	fmt.Println("code", uc)
 	if len(uc) > 0 {
@@ -134,7 +130,7 @@ func (m *TestModel) Groups(g ...uint) []uint {
 type SubModel struct {
 	SubModelID  uint `gorm:"primary_key"`
 	TestModelID uint
-	Name        string `form:"name"`
+	Field       string `form:"field"`
 	UC          string `gorm:"unique"`
 	OwnerID     uint
 	groupIDs    []uint
@@ -169,29 +165,30 @@ func (m *SubModel) Groups(g ...uint) []uint {
 	return m.groupIDs
 }
 
-type BadModel struct {
-	ID       uint `gorm:"primary_key"`
-	OwnerID  uint
-	groupIDs []uint
-	Perms    string
+type WeakModel struct {
+	WeakModelID uint   `gorm:"primary_key"`
+	Field       string `form:"field"`
+	OwnerID     uint
+	groupIDs    []uint
+	Perms       string
 }
 
-func (m BadModel) UniqueCode(uc ...string) string {
+func (m WeakModel) UniqueCode(uc ...string) string {
 	return ""
 }
 
-func (m BadModel) Permissions(p ...string) string {
+func (m WeakModel) Permissions(p ...string) string {
 	return m.Perms
 }
 
-func (m *BadModel) Owner(o ...uint) uint {
+func (m *WeakModel) Owner(o ...uint) uint {
 	if len(o) > 0 {
 		m.OwnerID = o[0]
 	}
 	return m.OwnerID
 }
 
-func (m *BadModel) Groups(g ...uint) []uint {
+func (m *WeakModel) Groups(g ...uint) []uint {
 	m.groupIDs = append(m.groupIDs, g...)
 	return m.groupIDs
 }

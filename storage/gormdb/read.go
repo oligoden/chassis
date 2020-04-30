@@ -43,41 +43,89 @@ func (s Store) ReadDB(user uint, groups []uint) storage.DBReader {
 	return db
 }
 
+func (db *readDB) Where(s interface{}, d ...interface{}) storage.DBReader {
+	db.orm = db.orm.Where(s, d...)
+	return db
+}
+
+func (db readDB) NewRecord(m interface{}) bool {
+	return db.orm.NewRecord(m)
+}
+
+type namer interface {
+	TableName() string
+}
+
 func (db *readDB) First(m interface{}, n ...string) {
 	if db.err != nil {
 		return
 	}
 
-	tableName := "testmodels"
+	tableName := ""
+	if len(n) > 0 {
+		tableName = n[0]
+	} else {
+		mNamer, assertable := m.(namer)
+		if !assertable {
+			db.err = errors.New("model is not assertable as an table namer")
+			return
+		}
+		tableName = mNamer.TableName()
+	}
 
 	x := db.orm
 	db.orm = db.orm.New()
 
-	conditions := fmt.Sprintf("%s.perms LIKE ?", tableName)
+	joins, conditions, selectors := db.readAuthorization(tableName)
+	if joins != "" {
+		x = x.Joins(joins)
+	}
+	x.Where(conditions, selectors...).First(m)
+}
+
+func (db readDB) readAuthorization(t string) (string, string, []interface{}) {
+	joins := ""
+	conditions := fmt.Sprintf("%s.perms LIKE ?", t)
 	selectors := []interface{}{"%:%:%:%r%"}
 
 	if db.user != 0 {
-		conditions += fmt.Sprintf(" OR %s.perms LIKE ?", tableName)
+		conditions += fmt.Sprintf(" OR %s.perms LIKE ?", t)
 		selectors = append(selectors, "%:%:%r%:%")
 
-		recordGroupJoin := fmt.Sprintf("left join groups on groups.owner = %s.owner_id", tableName)
-		recordGroupJoin += fmt.Sprintf(" left join record_groups on record_groups.record_id = %s.hash", tableName)
-		conditions += fmt.Sprintf(" OR (%s.perms LIKE ? AND (record_groups.group_id IN (?) OR groups.id IN (?)))", tableName)
+		joins += fmt.Sprintf("left join groups on groups.owner = %s.owner_id", t)
+		joins += fmt.Sprintf(" left join record_groups on record_groups.record_id = %s.hash", t)
+		conditions += fmt.Sprintf(" OR (%s.perms LIKE ? AND (record_groups.group_id IN (?) OR groups.id IN (?)))", t)
 		selectors = append(selectors, "%:%r%:%:%", db.groups, db.groups)
-		x = x.Joins(recordGroupJoin)
 
-		// conditions += fmt.Sprintf(" OR (%s.perms LIKE ? AND owner_id = ?)", tableName)
+		// conditions += fmt.Sprintf(" OR (%s.perms LIKE ? AND owner_id = ?)", t)
 		// selectors = append(selectors, "%r%:%:%:%", db.user)
 
-		conditions += fmt.Sprintf(" OR %s.owner_id = ?", tableName)
+		conditions += fmt.Sprintf(" OR %s.owner_id = ?", t)
 		selectors = append(selectors, db.user)
 	}
 
-	x.Where(conditions, selectors...).First(m)
+	return joins, conditions, selectors
 }
 
 func (db *readDB) Find(interface{}, ...string) {
 	return
+}
+
+func (db *readDB) Preload(f, t string) storage.DBReader {
+	if db.err != nil {
+		return db
+	}
+
+	db.orm = db.orm.Preload(f, func(pdb *gorm.DB) *gorm.DB {
+
+		joins, conditions, selectors := db.readAuthorization(t)
+		if joins != "" {
+			pdb = pdb.Joins(joins)
+		}
+		return pdb.Where(conditions, selectors...)
+	})
+
+	return db
 }
 
 func (db *readDB) Error() error {
