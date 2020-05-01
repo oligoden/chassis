@@ -75,7 +75,7 @@ type User struct {
 	Username string    `gorm:"unique;not null" json:"username"`
 	Password string    `gorm:"-" json:"password"`
 	Salt     string    `json:"salt"`
-	Groups   []Group   `gorm:"many2many:user_groups,foreignkey:id;association_foreignkey:id"`
+	Groups   []Group   `gorm:"many2many:user_groups;foreignkey:id;association_foreignkey:id"`
 	data.Default
 }
 
