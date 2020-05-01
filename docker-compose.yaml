@@ -1,0 +1,14 @@
+version: '3.5'
+
+services:
+
+  test-db:
+    image: mariadb
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: 'password'
+      MYSQL_DATABASE: 'chassis'
+      MYSQL_USER: 'chassis'
+      MYSQL_PASSWORD: 'password'
+    ports:
+      - 3316:3306

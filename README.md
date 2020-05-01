@@ -32,3 +32,11 @@ func main() {
     log.Fatal(http.ListenAndServe(":8080", router))
 }
 ```
+
+## Testing
+
+Spin up test database before running tests with:
+ 
+```bash
+docker-compose up -d
+```
