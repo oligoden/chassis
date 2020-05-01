@@ -154,6 +154,66 @@ func TestReadFirst(t *testing.T) {
 	dbRead.Close()
 }
 
+func TestReadToCreaterUpdater(t *testing.T) {
+	cleanDBUserTables()
+	setupDBTable(&TestModel{})
+
+	db, err := gorm.Open(dbt, uri)
+	if err != nil {
+		t.Error(err)
+	}
+	db.LogMode(true)
+	m := &TestModel{Field: "a", Perms: ":::r"}
+	db.Create(m)
+	db.Close()
+
+	store := gormdb.New(dbt, uri)
+	dbRead := store.ReadDB(0, []uint{})
+	m = &TestModel{}
+	dbRead.First(m)
+	if dbRead.Error() != nil {
+		t.Error(dbRead.Error())
+	}
+
+	exp := uint(1)
+	got := m.TestModelID
+	if exp != got {
+		t.Errorf(`expected "%d", got "%d"`, exp, got)
+	}
+
+	dbCreate := dbRead.ReaderToCreater()
+	m = &TestModel{Field: "b", Perms: ":::cru"}
+	dbCreate.Create(m)
+	m = &TestModel{}
+	dbRead.Where("field = ?", "b").First(m)
+	if dbRead.Error() != nil {
+		t.Error(dbRead.Error())
+	}
+
+	exp = uint(2)
+	got = m.TestModelID
+	if exp != got {
+		t.Errorf(`expected "%d", got "%d"`, exp, got)
+	}
+
+	dbUpdate := dbRead.ReaderToUpdater()
+	m.Field = "c"
+	dbUpdate.Save(m)
+	m = &TestModel{}
+	dbRead.Where("field = ?", "c").First(m)
+	if dbRead.Error() != nil {
+		t.Error(dbRead.Error())
+	}
+
+	exp = uint(2)
+	got = m.TestModelID
+	if exp != got {
+		t.Errorf(`expected "%d", got "%d"`, exp, got)
+	}
+
+	dbRead.Close()
+}
+
 func TestReadPreloadWithError(t *testing.T) {
 	cleanDBUserTables()
 	setupDBTable(&TestModel{})

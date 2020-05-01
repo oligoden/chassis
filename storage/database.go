@@ -29,8 +29,8 @@ type dbReader interface {
 	Preload(string, string) DBReader
 	NewRecord(interface{}) bool
 	// ReaderToAssociater() DBAssociater
-	// ReaderToCreater() DBCreater
-	// ReaderToUpdater() DBUpdater
+	ReaderToCreater() DBCreater
+	ReaderToUpdater() DBUpdater
 }
 
 type dbUpdater interface {

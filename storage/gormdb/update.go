@@ -15,6 +15,7 @@ type updateDB struct {
 	groups           []uint
 	err              error
 	uniqueCodeLength uint
+	uniqueCodeFunc   func(uint, rand.Source) string
 	rs               rand.Source
 }
 
@@ -35,6 +36,7 @@ func (s Store) UpdateDB(user uint, groups []uint) storage.DBUpdater {
 	db.groups = groups
 
 	db.uniqueCodeLength = s.UniqueCodeLength()
+	db.uniqueCodeFunc = s.UniqueCodeFunc()
 	db.rs = rand.New(s.rs)
 
 	return db
