@@ -33,7 +33,7 @@ func New(dbt, uri string) *Store {
 	db.LogMode(true)
 	db.AutoMigrate(&User{})
 	db.AutoMigrate(&Group{})
-	db.AutoMigrate(&UserGroup{})
+	// db.AutoMigrate(&UserGroup{})
 	db.AutoMigrate(&RecordGroup{})
 	db.Close()
 	err = db.Error
@@ -70,13 +70,12 @@ func (s Store) Error() error {
 }
 
 type User struct {
-	ID         uint        `gorm:"primary_key" form:"id"`
-	TS         time.Time   `sql:"DEFAULT:CURRENT_TIMESTAMP"`
-	Username   string      `gorm:"unique;not null" json:"username"`
-	Password   string      `gorm:"-" json:"password"`
-	Salt       string      `json:"salt"`
-	UserGroups []UserGroup `gorm:"foreignkey:uid;association_foreignkey:id"`
-	OwnGroup   Group       `gorm:"foreignkey:owner;association_foreignkey:id"`
+	ID       uint      `gorm:"primary_key" form:"id"`
+	TS       time.Time `sql:"DEFAULT:CURRENT_TIMESTAMP"`
+	Username string    `gorm:"unique;not null" json:"username"`
+	Password string    `gorm:"-" json:"password"`
+	Salt     string    `json:"salt"`
+	Groups   []Group   `gorm:"many2many:user_groups,foreignkey:id;association_foreignkey:id"`
 	data.Default
 }
 
@@ -94,15 +93,6 @@ type Group struct {
 
 func (Group) TableName() string {
 	return "groups"
-}
-
-type UserGroup struct {
-	ID      uint      `gorm:"primary_key"`
-	TS      time.Time `sql:"DEFAULT:CURRENT_TIMESTAMP"`
-	GroupID uint
-	UID     uint
-	Super   bool
-	Perms   string
 }
 
 type RecordGroup struct {

@@ -30,9 +30,6 @@ func TestNew(t *testing.T) {
 	if !db.HasTable("groups") {
 		t.Error(`expected table groups`)
 	}
-	if !db.HasTable("user_groups") {
-		t.Error(`expected table groups`)
-	}
 	if !db.HasTable("record_groups") {
 		t.Error(`expected table groups`)
 	}
