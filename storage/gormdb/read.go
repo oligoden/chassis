@@ -152,7 +152,7 @@ func (db *readDB) ReaderToUpdater() storage.DBUpdater {
 	}
 }
 
-func (db *readDB) ReaderToAssociater() storage.DBAssociater {
+func (db *readDB) ReaderToAssociator() storage.DBAssociator {
 	return &associateDB{
 		orm:              db.orm,
 		user:             db.user,

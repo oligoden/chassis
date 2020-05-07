@@ -20,7 +20,7 @@ type associateDB struct {
 	rs               rand.Source
 }
 
-func (s *Store) AssociateDB(user uint, groups []uint) storage.DBAssociater {
+func (s *Store) AssociateDB(user uint, groups []uint) storage.DBAssociator {
 	db := &associateDB{}
 
 	if s.err != nil {

@@ -28,7 +28,7 @@ type dbReader interface {
 	Find(interface{}, ...string)
 	Preload(string, string) DBReader
 	NewRecord(interface{}) bool
-	ReaderToAssociater() DBAssociater
+	ReaderToAssociator() DBAssociator
 	ReaderToCreater() DBCreater
 	ReaderToUpdater() DBUpdater
 }
@@ -43,13 +43,13 @@ type DBUpdater interface {
 	// Error() error
 }
 
-type dbAssociater interface {
+type dbAssociator interface {
 	Append(string, Authenticator, Authenticator)
 	// Clear(Authenticator, string)
 }
-type DBAssociater interface {
+type DBAssociator interface {
 	dbManager
-	dbAssociater
+	dbAssociator
 	// Error() error
 }
 

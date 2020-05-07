@@ -215,7 +215,7 @@ func TestReadToCreaterUpdater(t *testing.T) {
 		t.Errorf(`expected "%d", got "%d"`, exp, got)
 	}
 
-	dbAssociate := dbRead.ReaderToAssociater()
+	dbAssociate := dbRead.ReaderToAssociator()
 	mSub := &SubModel{Perms: ":::cr"}
 	dbAssociate.Append("SubModels", m, mSub)
 	m = &TestModel{}
