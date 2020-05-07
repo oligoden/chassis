@@ -84,14 +84,15 @@ func setupDBTable(d interface{}, dbs ...*gorm.DB) {
 }
 
 type TestModel struct {
-	TestModelID uint       `gorm:"primary_key"`
-	Field       string     `form:"field"`
-	SubModels   []SubModel `form:"-" json:"submodels" gorm:"foreignkey:TestModelID;association_foreignkey:TestModelID"`
-	UC          string     `gorm:"unique"`
-	OwnerID     uint
-	groupIDs    []uint
-	Perms       string
-	Hash        string
+	TestModelID     uint       `gorm:"primary_key"`
+	Field           string     `form:"field"`
+	SubModels       []SubModel `form:"-" json:"submodels" gorm:"foreignkey:TestModelID;association_foreignkey:TestModelID"`
+	Many2ManyModels []SubModel `form:"-" json:"manymodels" gorm:"many2many:test_subs;"`
+	UC              string     `gorm:"unique"`
+	OwnerID         uint
+	groupIDs        []uint
+	Perms           string
+	Hash            string
 }
 
 type TestModels []TestModel
@@ -101,10 +102,10 @@ func (TestModel) TableName() string {
 }
 
 func (m *TestModel) UniqueCode(uc ...string) string {
-	fmt.Println("code", uc)
 	if len(uc) > 0 {
 		m.UC = uc[0]
 	}
+	fmt.Println("code", m.UC)
 	return m.UC
 }
 
@@ -143,6 +144,7 @@ func (m *SubModel) UniqueCode(uc ...string) string {
 	if len(uc) > 0 {
 		m.UC = uc[0]
 	}
+	fmt.Println("code", m.UC)
 	return m.UC
 }
 

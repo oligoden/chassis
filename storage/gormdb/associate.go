@@ -2,16 +2,16 @@ package gormdb
 
 import (
 	"errors"
+	"fmt"
 	"math/rand"
-	"strings"
 
 	"github.com/jinzhu/gorm"
-
 	"github.com/oligoden/chassis/storage"
 )
 
-type createDB struct {
+type associateDB struct {
 	orm              *gorm.DB
+	assoc            *gorm.Association
 	user             uint
 	groups           []uint
 	err              error
@@ -20,8 +20,8 @@ type createDB struct {
 	rs               rand.Source
 }
 
-func (s Store) CreateDB(user uint, groups []uint) storage.DBCreater {
-	db := &createDB{}
+func (s *Store) AssociateDB(user uint, groups []uint) storage.DBAssociater {
+	db := &associateDB{}
 
 	if s.err != nil {
 		db.err = errors.New("store error")
@@ -43,41 +43,40 @@ func (s Store) CreateDB(user uint, groups []uint) storage.DBCreater {
 	return db
 }
 
-func (db *createDB) Create(m storage.Authenticator) {
+func (db *associateDB) Append(f string, m, a storage.Authenticator) {
 	if db.err != nil {
 		return
 	}
 
 	m.Owner(db.user)
 
-	if auth, err := Authorize(m, "c", db.user, db.groups); !auth {
+	if auth, err := Authorize(a, "c", db.user, db.groups); !auth {
 		if err != nil {
 			db.err = err
 			return
 		}
-		db.err = errors.New("create authorization failed")
+		db.err = errors.New("associate create authorization failed")
 		return
 	}
 
-	m.UniqueCode(db.uniqueCodeFunc(db.uniqueCodeLength, db.rs))
-	err := db.orm.Create(m).Error
+	a.UniqueCode(db.uniqueCodeFunc(db.uniqueCodeLength, db.rs))
+	err := db.orm.Create(a).Error
 	if err != nil {
 		if isDuplicateUniqueCode(err) {
-			db.err = db.retryCreate(m)
+			db.err = db.retryAssociate(f, m, a)
 		} else {
 			db.err = err
 		}
 	}
+
+	db.orm.Model(m).Association(f).Append(a)
 }
 
-func isDuplicateUniqueCode(err error) bool {
-	return strings.Contains(err.Error(), "Error 1062: Duplicate entry") && strings.Contains(err.Error(), "for key 'uc'")
-}
-
-func (db *createDB) retryCreate(m storage.Authenticator) error {
+func (db *associateDB) retryAssociate(f string, m, a storage.Authenticator) error {
 	for i := 0; i < 3; i++ {
-		m.UniqueCode(db.uniqueCodeFunc(db.uniqueCodeLength, db.rs))
-		err := db.orm.Create(m).Error
+		fmt.Println("attempt", i)
+		a.UniqueCode(db.uniqueCodeFunc(db.uniqueCodeLength, db.rs))
+		err := db.orm.Create(a).Error
 		if err != nil {
 			if !isDuplicateUniqueCode(err) {
 				return err
@@ -88,28 +87,21 @@ func (db *createDB) retryCreate(m storage.Authenticator) error {
 	}
 
 	db.uniqueCodeLength++
-	m.UniqueCode(db.uniqueCodeFunc(db.uniqueCodeLength, db.rs))
-	err := db.orm.Create(m).Error
+	fmt.Println("increased to", db.uniqueCodeLength)
+	a.UniqueCode(db.uniqueCodeFunc(db.uniqueCodeLength, db.rs))
+	fmt.Println("code", a.UniqueCode())
+	err := db.orm.Create(a).Error
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (db *createDB) CreaterToUpdater() storage.DBUpdater {
-	return &updateDB{
-		orm:    db.orm,
-		user:   db.user,
-		groups: db.groups,
-		err:    db.err,
-	}
-}
-
-func (db *createDB) Error() error {
+func (db *associateDB) Error() error {
 	return db.err
 }
 
-func (db *createDB) Close() error {
+func (db *associateDB) Close() error {
 	if db.orm != nil {
 		return db.orm.Close()
 	}

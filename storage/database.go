@@ -44,8 +44,8 @@ type DBUpdater interface {
 }
 
 type dbAssociater interface {
-	AppendAssociation(string, Authenticator, Authenticator)
-	ClearAssociation(Authenticator, string)
+	Append(string, Authenticator, Authenticator)
+	// Clear(Authenticator, string)
 }
 type DBAssociater interface {
 	dbManager
