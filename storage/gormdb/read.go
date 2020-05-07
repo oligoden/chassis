@@ -152,6 +152,18 @@ func (db *readDB) ReaderToUpdater() storage.DBUpdater {
 	}
 }
 
+func (db *readDB) ReaderToAssociater() storage.DBAssociater {
+	return &associateDB{
+		orm:              db.orm,
+		user:             db.user,
+		groups:           db.groups,
+		err:              db.err,
+		uniqueCodeLength: db.uniqueCodeLength,
+		uniqueCodeFunc:   db.uniqueCodeFunc,
+		rs:               db.rs,
+	}
+}
+
 func (db *readDB) Error() error {
 	return db.err
 }

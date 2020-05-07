@@ -28,7 +28,7 @@ type dbReader interface {
 	Find(interface{}, ...string)
 	Preload(string, string) DBReader
 	NewRecord(interface{}) bool
-	// ReaderToAssociater() DBAssociater
+	ReaderToAssociater() DBAssociater
 	ReaderToCreater() DBCreater
 	ReaderToUpdater() DBUpdater
 }
