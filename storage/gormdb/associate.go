@@ -59,13 +59,15 @@ func (db *associateDB) Append(f string, m, a storage.Authenticator) {
 		return
 	}
 
-	a.UniqueCode(db.uniqueCodeFunc(db.uniqueCodeLength, db.rs))
-	err := db.orm.Create(a).Error
-	if err != nil {
-		if isDuplicateUniqueCode(err) {
-			db.err = db.retryAssociate(f, m, a)
-		} else {
-			db.err = err
+	if db.orm.NewRecord(a) {
+		a.UniqueCode(db.uniqueCodeFunc(db.uniqueCodeLength, db.rs))
+		err := db.orm.Create(a).Error
+		if err != nil {
+			if isDuplicateUniqueCode(err) {
+				db.err = db.retryAssociate(f, m, a)
+			} else {
+				db.err = err
+			}
 		}
 	}
 
