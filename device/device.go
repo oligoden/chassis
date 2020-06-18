@@ -1,9 +1,10 @@
 package device
 
 import (
-	"encoding/json"
 	"log"
 	"net/http"
+	"strconv"
+	"strings"
 
 	"github.com/oligoden/chassis/device/model"
 	"github.com/oligoden/chassis/device/view"
@@ -42,20 +43,19 @@ func (d Default) Manage(action string) {
 	db.Close()
 }
 
-type UserHeader struct {
-	User   uint   `json:"user"`
-	Groups []uint `json:"groups"`
-}
-
 func (d *Default) Bind(r *http.Request) {
-	userHeader := r.Header.Get("ax_session_user")
-	uh := &UserHeader{}
-	err := json.Unmarshal([]byte(userHeader), uh)
-	if err != nil {
-		d.err = err
+	if d.err != nil {
+		return
 	}
-	d.user = uh.User
-	d.groups = uh.Groups
+
+	u := r.Header.Get("X_Session_User")
+	user, _ := strconv.Atoi(u)
+	d.user = uint(user)
+
+	for _, g := range strings.Split(r.Header.Get("X_User_Groups"), ",") {
+		group, _ := strconv.Atoi(g)
+		d.groups = append(d.groups, uint(group))
+	}
 }
 
 func (d Default) User() (uint, []uint) {

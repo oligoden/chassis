@@ -4,16 +4,13 @@ import (
 	"errors"
 	"log"
 	"net/http"
-	"net/http/httptest"
-	"net/url"
-	"strings"
 	"testing"
 
 	"github.com/jinzhu/gorm"
 
 	"github.com/oligoden/chassis/device/model"
 	"github.com/oligoden/chassis/device/model/data"
-	"github.com/oligoden/chassis/storage/gormdb"
+	"github.com/oligoden/chassis/storage"
 )
 
 const (
@@ -22,32 +19,32 @@ const (
 )
 
 func TestData(t *testing.T) {
-	xMatch := &Match{}
-	mMatch := &Model{}
-	mMatch.Default = model.Default{}
+	xTestModel := &TestModel{}
+	mTestModel := &Model{}
+	mTestModel.Default = model.Default{}
 
-	if mMatch.Data() != nil {
+	if mTestModel.Data() != nil {
 		t.Errorf(`expected nil`)
 	}
 
-	if mMatch.Data(xMatch) == nil {
+	if mTestModel.Data(xTestModel) == nil {
 		t.Errorf(`expected not nil`)
 	}
 }
 
 func TestHashing(t *testing.T) {
-	xMatch := &Match{}
-	mMatch := &Model{}
-	mMatch.Default = model.Default{}
-	mMatch.Data(xMatch)
+	xTestModel := &TestModel{}
+	mTestModel := &Model{}
+	mTestModel.Default = model.Default{}
+	mTestModel.Data(xTestModel)
 
-	if mMatch.Hash != "" {
+	if mTestModel.Hash != "" {
 		t.Errorf(`expected empty hash`)
 	}
 
-	mMatch.Hasher()
+	mTestModel.Hasher()
 
-	if mMatch.Hash == "" {
+	if mTestModel.Hash == "" {
 		t.Errorf(`expected non-empty hash`)
 	}
 }
@@ -70,139 +67,16 @@ func TestBindNoDataError(t *testing.T) {
 	}
 }
 
-func TestCreateStartError(t *testing.T) {
-	m := &Model{}
-	m.Default = model.Default{Err: errors.New("error")}
-	s := gormdb.New(dbt, uri)
-	db := s.CreateDB(1, []uint{})
-	m.Create(db)
-	if m.Error() == nil {
-		t.Error(`expected error`)
-	}
-}
-
-func TestCreatePrepareError(t *testing.T) {
-	m := &Model{}
-	m.Default = model.Default{}
-	m.Data(&prepareErrorData{
-		Default: data.Default{},
-	})
-	s := gormdb.New(dbt, uri)
-	db := s.CreateDB(1, []uint{})
-	m.Create(db)
-	if m.Error() == nil {
-		t.Error(`expected error`)
-	}
-}
-
-func TestCreateError(t *testing.T) {
-	m := &Model{}
-	m.Default = model.Default{}
-	m.Data(&createErrorData{
-		Default: data.Default{},
-	})
-	s := gormdb.New(dbt, uri)
-	db := s.CreateDB(1, []uint{})
-	m.Create(db)
-	if m.Error() == nil {
-		t.Error(`expected error`)
-	}
-}
-
-func TestCreateHashError(t *testing.T) {
-	setupDBTable(&hashErrorData{})
-
-	m := &Model{}
-	m.Default = model.Default{}
-	m.Data(&hashErrorData{
-		Default: data.Default{
-			Perms: "::c:",
-		},
-	})
-	s := gormdb.New(dbt, uri)
-	db := s.CreateDB(1, []uint{})
-	m.Create(db)
-	if m.Error() == nil {
-		t.Error(`expected error`)
-	}
-}
-
-func TestCreateCompleteError(t *testing.T) {
-	setupDBTable(&completeErrorData{})
-
-	m := &Model{}
-	m.Default = model.Default{}
-	m.Data(&completeErrorData{
-		Default: data.Default{
-			Perms: "::c:",
-		},
-	})
-	s := gormdb.New(dbt, uri)
-	db := s.CreateDB(1, []uint{})
-	m.Create(db)
-	if m.Error() == nil {
-		t.Error(`expected error`)
-	}
-}
-
-func TestCreate(t *testing.T) {
-	setupDBTable(&Match{})
-
-	f := make(url.Values)
-	f.Set("field", "Chesterfield")
-	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(f.Encode()))
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-
-	m := &Model{}
-	m.Default = model.Default{}
-	m.Request = req
-	m.Data(NewMatch())
-
-	s := gormdb.New(dbt, uri)
-	db := s.CreateDB(1, []uint{})
-
-	m.Bind()
-	m.Create(db)
-	if m.Error() != nil {
-		t.Error(m.Error())
-	}
-
-	db.Close()
-	if db.Error() != nil {
-		t.Error("got error", db.Error())
-	}
-
-	dbGorm, err := gorm.Open(dbt, uri)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	xMatch := &Match{}
-	dbGorm.First(xMatch)
-
-	exp := "Chesterfield"
-	got := xMatch.Field
-	if got != exp {
-		t.Errorf(`expected "%s", got "%s"`, exp, got)
-	}
-	if xMatch.UC == "" {
-		t.Error(`expected non empty unique code`)
-	}
-	if xMatch.Hash == "" {
-		t.Error(`expected non empty hash`)
-	}
-}
-
 type Model struct {
 	model.Default
 }
 
-func NewModel(w http.ResponseWriter, r *http.Request) *Model {
+func NewModel(r *http.Request) *Model {
 	m := &Model{}
 	m.Default = model.Default{}
 	m.Request = r
-	m.NewData = func() data.Operator { return NewMatch() }
-	m.Data(NewMatch())
+	m.NewData = func() data.Operator { return NewTestModel() }
+	m.Data(NewTestModel())
 	return m
 }
 
@@ -234,19 +108,16 @@ func (m completeErrorData) Complete() error {
 	return errors.New("complete test error")
 }
 
-func NewMatch() data.Operator {
-	r := &Match{}
+func NewTestModel() data.Operator {
+	r := &TestModel{}
 	r.Default = data.Default{}
 	r.Permissions("::c:")
 	return r
 }
 
-type Match struct {
-	ID             uint    `gorm:"primary_key"`
-	Field          string  `form:"field"`
-	AvgTemperature float32 `form:"avgtemp"`
-	Capacity       uint    `form:"capacity"`
-	OpenRoof       bool    `form:"openroof"`
+type TestModel struct {
+	ID    uint   `gorm:"primary_key"`
+	Field string `form:"field"`
 	// CaptainUC      string  `json:"-"`
 	// Captain        Player            `json:"kaptain" gorm:"foreignkey:KaptainUC;association_foreignkey:UC"`
 	// Players        []Player          `json:"-" gorm:"foreignkey:MatchUC;association_foreignkey:UC"`
@@ -254,20 +125,56 @@ type Match struct {
 	data.Default
 }
 
-func (Match) TableName() string {
-	return "matches"
+func (TestModel) TableName() string {
+	return "testmodels"
 }
 
-func setupDBTable(d interface{}) {
+func (x *TestModel) Read(db storage.DBReader) error {
+	db.First(x)
+	err := db.Error()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func cleanDBUserTables() {
 	db, err := gorm.Open(dbt, uri)
 	if err != nil {
 		log.Fatal(err)
 	}
 	db.LogMode(true)
 
+	db.DropTableIfExists("users")
+	db.DropTableIfExists("groups")
+	db.DropTableIfExists("user_groups")
+	db.DropTableIfExists("record_groups")
+	db.Close()
+	err = db.Error
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func setupDBTable(d interface{}, dbs ...*gorm.DB) {
+	var db *gorm.DB
+	var err error
+
+	if len(dbs) > 0 {
+		db = dbs[0]
+	}
+
+	if db == nil {
+		db, err = gorm.Open(dbt, uri)
+		if err != nil {
+			log.Fatal(err)
+		}
+		db.LogMode(true)
+		defer db.Close()
+	}
+
 	db.DropTableIfExists(d)
 	db.AutoMigrate(d)
-	db.Close()
 	err = db.Error
 	if err != nil {
 		log.Fatal(err)

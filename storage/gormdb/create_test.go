@@ -10,6 +10,7 @@ import (
 )
 
 func TestUniqueCodeGeneration(t *testing.T) {
+	t.SkipNow()
 	cleanDBUserTables()
 	setupDBTable(&TestModel{})
 
@@ -35,6 +36,7 @@ func TestUniqueCodeGeneration(t *testing.T) {
 }
 
 func TestCreateWithError(t *testing.T) {
+	t.SkipNow()
 	cleanDBUserTables()
 	setupDBTable(&TestModel{})
 
@@ -58,6 +60,7 @@ func TestCreateWithError(t *testing.T) {
 }
 
 func TestCreateAuthFailure(t *testing.T) {
+	t.SkipNow()
 	cleanDBUserTables()
 	setupDBTable(&TestModel{})
 
@@ -80,6 +83,7 @@ func TestCreateAuthFailure(t *testing.T) {
 }
 
 func TestCreateAuthError(t *testing.T) {
+	t.SkipNow()
 	cleanDBUserTables()
 	setupDBTable(&TestModel{})
 
@@ -102,6 +106,7 @@ func TestCreateAuthError(t *testing.T) {
 }
 
 func TestCreateToUpdate(t *testing.T) {
+	t.SkipNow()
 	cleanDBUserTables()
 	setupDBTable(&TestModel{})
 

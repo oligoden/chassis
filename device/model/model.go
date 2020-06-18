@@ -13,7 +13,7 @@ import (
 type Operator interface {
 	Manage(storage.DBManager, string)
 	Create(storage.DBCreater)
-	// Read(storage.DBReader)
+	Read(storage.DBReader)
 	// Update(storage.DBUpdater)
 	// Append(string, storage.DBReader)
 	Communicator
@@ -117,6 +117,33 @@ func (m *Default) Create(db storage.DBCreater) {
 	dbUpdater := db.CreaterToUpdater()
 	dbUpdater.Save(m.data, "with-create")
 	err = dbUpdater.Error()
+	if err != nil {
+		m.Err = err
+		return
+	}
+
+	err = m.data.Complete()
+	if err != nil {
+		m.Err = err
+		return
+	}
+
+	m.Hasher()
+}
+
+func (m *Default) Read(db storage.DBReader) {
+	if m.Err != nil {
+		return
+	}
+
+	err := m.data.Prepare()
+	if err != nil {
+		m.Err = err
+		return
+	}
+
+	m.data.Read(db)
+	err = db.Error()
 	if err != nil {
 		m.Err = err
 		return

@@ -45,26 +45,66 @@ func TestMigration(t *testing.T) {
 }
 
 func TestCreate(t *testing.T) {
-	cleanDBTables("dataones")
+	cleanDBUserTables()
+	setupDBTable("testmodels")
 
 	f := make(url.Values)
-	f.Set("field1", "test")
+	f.Set("field", "test")
 	r := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(f.Encode()))
 	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	r.Header.Set("ax_session_user", `{"user": 1}`)
-
+	r.Header.Set("X_Session_User", `1`)
 	w := httptest.NewRecorder()
 
-	store := gormdb.New(dbt, uri)
-	d := NewDevice(store)
+	s := gormdb.New(dbt, uri)
+	d := NewDevice(s)
 	d.Manage("migrate")
 	d.Create().ServeHTTP(w, r)
 
 	if w.Code != http.StatusOK {
 		t.Errorf(`expected "%d", got "%d"`, http.StatusOK, w.Code)
 	}
-	if !strings.Contains(w.Body.String(), `"ID":1,"Field1":"test"`) {
-		t.Errorf(`expected "%s", got "%s"`, `"ID":1,"Field1":"test"`, w.Body.String())
+	exp := `"ID":1,"Field":"test"`
+	got := w.Body.String()
+	if !strings.Contains(got, exp) {
+		t.Errorf(`expected substring "%s", got "%s"`, exp, got)
+	}
+}
+
+func TestRead(t *testing.T) {
+	db, err := gorm.Open(dbt, uri)
+	if err != nil {
+		t.Error(err)
+	}
+	db.LogMode(true)
+
+	cleanDBUserTables()
+	setupDBTable(&TestModel{}, db)
+
+	x := &TestModel{Field: "a"}
+	x.Perms = ":::r"
+	db.Create(x)
+	db.Close()
+	err = db.Error
+	if err != nil {
+		t.Error(err)
+	}
+
+	r := httptest.NewRequest(http.MethodGet, "/", nil)
+	r.Header.Set("X_Session_User", `1`)
+	w := httptest.NewRecorder()
+
+	s := gormdb.New(dbt, uri)
+	d := NewDevice(s)
+	d.Manage("migrate")
+	d.Read().ServeHTTP(w, r)
+
+	if w.Code != http.StatusOK {
+		t.Errorf(`expected "%d", got "%d"`, http.StatusOK, w.Code)
+	}
+	exp := `"ID":1,"Field":"a"`
+	got := w.Body.String()
+	if !strings.Contains(got, exp) {
+		t.Errorf(`expected substring "%s", got "%s"`, exp, got)
 	}
 }
 
@@ -88,8 +128,8 @@ func NewModel(r *http.Request) *Model {
 	m := &Model{}
 	m.Default = model.Default{}
 	m.Request = r
-	m.NewData = func() data.Operator { return NewDataOne() }
-	m.Data(NewDataOne())
+	m.NewData = func() data.Operator { return NewTestModel() }
+	m.Data(NewTestModel())
 	return m
 }
 
@@ -104,45 +144,71 @@ func NewView(w http.ResponseWriter) *View {
 	return v
 }
 
-type DataOne struct {
-	ID     uint   `gorm:"primary_key"`
-	Field1 string `form:"field1"`
+type TestModel struct {
+	ID    uint   `gorm:"primary_key"`
+	Field string `form:"field"`
 	// Players []Player `form:"-" json:"players" gorm:"foreignkey:MatchUC;association_foreignkey:UC"`
 	data.Default
 }
 
-func NewDataOne() *DataOne {
-	r := &DataOne{}
+func NewTestModel() *TestModel {
+	r := &TestModel{}
 	r.Default = data.Default{}
 	r.Perms = "ru:ru:c:"
 	r.Groups(2)
 	return r
 }
 
-func (DataOne) TableName() string {
-	return "dataones"
+func (TestModel) TableName() string {
+	return "testmodels"
 }
 
-func (x DataOne) Response() interface{} {
-	return x
+func (x *TestModel) Read(db storage.DBReader) error {
+	db.First(x)
+	err := db.Error()
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
-func cleanDBTables(ts ...string) {
+func cleanDBUserTables() {
 	db, err := gorm.Open(dbt, uri)
 	if err != nil {
 		log.Fatal(err)
 	}
 	db.LogMode(true)
 
-	for _, t := range ts {
-		db.DropTableIfExists(t)
-	}
-
 	db.DropTableIfExists("users")
 	db.DropTableIfExists("groups")
 	db.DropTableIfExists("user_groups")
 	db.DropTableIfExists("record_groups")
 	db.Close()
+	err = db.Error
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func setupDBTable(d interface{}, dbs ...*gorm.DB) {
+	var db *gorm.DB
+	var err error
+
+	if len(dbs) > 0 {
+		db = dbs[0]
+	}
+
+	if db == nil {
+		db, err = gorm.Open(dbt, uri)
+		if err != nil {
+			log.Fatal(err)
+		}
+		db.LogMode(true)
+		defer db.Close()
+	}
+
+	db.DropTableIfExists(d)
+	db.AutoMigrate(d)
 	err = db.Error
 	if err != nil {
 		log.Fatal(err)

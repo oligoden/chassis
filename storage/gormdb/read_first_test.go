@@ -9,6 +9,7 @@ import (
 )
 
 func TestReadAuthorization(t *testing.T) {
+	t.SkipNow()
 	db, err := gorm.Open(dbt, uri)
 	if err != nil {
 		t.Error(err)
