@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/oligoden/chassis/device/model"
 )
@@ -32,4 +33,15 @@ func (v Default) JSON(m model.Operator) {
 	}
 
 	v.Response.Write(out)
+}
+
+func (v Default) Error(m model.Operator) {
+	if m.Error() != nil {
+		log.Println(m.Error())
+		if strings.Contains(m.Error().Error(), "bad request") {
+			v.Response.WriteHeader(http.StatusBadRequest)
+		} else {
+			v.Response.WriteHeader(http.StatusInternalServerError)
+		}
+	}
 }
