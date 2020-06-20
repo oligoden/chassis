@@ -11,6 +11,7 @@ import (
 
 type Operator interface {
 	JSON(model.Operator)
+	Error(model.Operator)
 }
 
 type Default struct {
