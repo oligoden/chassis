@@ -107,8 +107,31 @@ func (db readDB) readAuthorization(t string) (string, string, []interface{}) {
 	return joins, conditions, selectors
 }
 
-func (db *readDB) Find(interface{}, ...string) {
-	return
+func (db *readDB) Find(m interface{}, n ...string) {
+	if db.err != nil {
+		return
+	}
+
+	tableName := ""
+	if len(n) > 0 {
+		tableName = n[0]
+	} else {
+		mNamer, assertable := m.(namer)
+		if !assertable {
+			db.err = errors.New("model is not assertable as an table namer")
+			return
+		}
+		tableName = mNamer.TableName()
+	}
+
+	x := db.orm
+	db.orm = db.orm.New()
+
+	joins, conditions, selectors := db.readAuthorization(tableName)
+	if joins != "" {
+		x = x.Joins(joins)
+	}
+	x.Where(conditions, selectors...).Find(m)
 }
 
 func (db *readDB) Preload(f, t string) storage.DBReader {
