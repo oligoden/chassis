@@ -101,6 +101,10 @@ func (TestModel) TableName() string {
 	return "testmodels"
 }
 
+func (TestModels) TableName() string {
+	return "testmodels"
+}
+
 func (m *TestModel) UniqueCode(uc ...string) string {
 	if len(uc) > 0 {
 		m.UC = uc[0]

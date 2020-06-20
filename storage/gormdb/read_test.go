@@ -9,7 +9,6 @@ import (
 )
 
 func TestReadWhere(t *testing.T) {
-	t.SkipNow()
 	cleanDBUserTables()
 	setupDBTable(&TestModel{})
 
@@ -39,7 +38,6 @@ func TestReadWhere(t *testing.T) {
 }
 
 func TestReadNewRecord(t *testing.T) {
-	t.SkipNow()
 	cleanDBUserTables()
 	setupDBTable(&TestModel{})
 
@@ -75,7 +73,6 @@ func TestReadNewRecord(t *testing.T) {
 }
 
 func TestReadFirstWithError(t *testing.T) {
-	t.SkipNow()
 	cleanDBUserTables()
 	setupDBTable(&TestModel{})
 
@@ -107,11 +104,9 @@ func TestReadFirstWithError(t *testing.T) {
 	}
 }
 
-func TestReadFirst(t *testing.T) {
-	t.SkipNow()
+func TestReads(t *testing.T) {
 	cleanDBUserTables()
 	setupDBTable(&TestModel{})
-	setupDBTable(&SubModel{})
 	setupDBTable(&WeakModel{})
 
 	db, err := gorm.Open(dbt, uri)
@@ -119,7 +114,9 @@ func TestReadFirst(t *testing.T) {
 		t.Error(err)
 	}
 	db.LogMode(true)
-	m := &SubModel{Field: "a", Perms: ":::r"}
+	m := &TestModel{UC: "a", Perms: ":::r"}
+	db.Create(m)
+	m = &TestModel{UC: "b", Perms: ":::r"}
 	db.Create(m)
 	mWeakModel := &WeakModel{Field: "a", Perms: ":::r"}
 	db.Create(mWeakModel)
@@ -127,21 +124,44 @@ func TestReadFirst(t *testing.T) {
 
 	store := gormdb.New(dbt, uri)
 	dbRead := store.ReadDB(0, []uint{})
-	m = &SubModel{}
+
+	m = &TestModel{}
 	dbRead.First(m)
 	if dbRead.Error() != nil {
 		t.Error(dbRead.Error())
 	}
+	exp := uint(1)
+	got := m.TestModelID
+	if exp != got {
+		t.Errorf(`expected "%d", got "%d"`, exp, got)
+	}
+
+	m = &TestModel{}
+	dbRead.Last(m)
+	if dbRead.Error() != nil {
+		t.Error(dbRead.Error())
+	}
+	exp = uint(2)
+	got = m.TestModelID
+	if exp != got {
+		t.Errorf(`expected "%d", got "%d"`, exp, got)
+	}
+
+	mm := TestModels{}
+	dbRead.Find(&mm)
+	if dbRead.Error() != nil {
+		t.Error(dbRead.Error())
+	}
+	exp = uint(2)
+	got = uint(len(mm))
+	if exp != got {
+		t.Errorf(`expected "%d", got "%d"`, exp, got)
+	}
+
 	mWeakModel = &WeakModel{}
 	dbRead.First(mWeakModel, "weak_models")
 	if dbRead.Error() != nil {
 		t.Error(dbRead.Error())
-	}
-
-	exp := uint(1)
-	got := m.SubModelID
-	if exp != got {
-		t.Errorf(`expected "%d", got "%d"`, exp, got)
 	}
 	exp = uint(1)
 	got = mWeakModel.WeakModelID
@@ -161,6 +181,7 @@ func TestReadFirst(t *testing.T) {
 func TestReadToCreaterUpdater(t *testing.T) {
 	cleanDBUserTables()
 	setupDBTable(&TestModel{})
+	setupDBTable(&SubModel{})
 
 	db, err := gorm.Open(dbt, uri)
 	if err != nil {
@@ -219,19 +240,17 @@ func TestReadToCreaterUpdater(t *testing.T) {
 	mSub := &SubModel{Perms: ":::cr"}
 	dbAssociate.Append("SubModels", m, mSub)
 	m = &TestModel{}
-	dbRead.Preload("SubModels", "submodels").First(m)
+	dbRead.Preload("SubModels", "submodels").Last(m)
 	dbRead.Close()
 	if dbRead.Error() != nil {
 		t.Error(dbRead.Error())
 	}
-
 	if len(m.SubModels) == 0 {
 		t.Error(`expected preloaded submodels`)
 	}
 }
 
 func TestReadPreloadWithError(t *testing.T) {
-	t.SkipNow()
 	cleanDBUserTables()
 	setupDBTable(&TestModel{})
 	setupDBTable(&SubModel{})
@@ -277,7 +296,6 @@ func TestReadPreloadWithError(t *testing.T) {
 }
 
 func TestReadPreload(t *testing.T) {
-	t.SkipNow()
 	cleanDBUserTables()
 	setupDBTable(&TestModel{})
 	setupDBTable(&SubModel{})

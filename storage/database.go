@@ -25,6 +25,7 @@ type DBReader interface {
 type dbReader interface {
 	Where(interface{}, ...interface{}) DBReader
 	First(interface{}, ...string)
+	Last(interface{}, ...string)
 	Find(interface{}, ...string)
 	Preload(string, string) DBReader
 	NewRecord(interface{}) bool

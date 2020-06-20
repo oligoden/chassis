@@ -57,8 +57,26 @@ type namer interface {
 }
 
 func (db *readDB) First(m interface{}, n ...string) {
+	if r, ok := db.read(m, n...); ok {
+		r.First(m)
+	}
+}
+
+func (db *readDB) Last(m interface{}, n ...string) {
+	if r, ok := db.read(m, n...); ok {
+		r.Last(m)
+	}
+}
+
+func (db *readDB) Find(m interface{}, n ...string) {
+	if r, ok := db.read(m, n...); ok {
+		r.Find(m)
+	}
+}
+
+func (db *readDB) read(m interface{}, n ...string) (*gorm.DB, bool) {
 	if db.err != nil {
-		return
+		return nil, false
 	}
 
 	tableName := ""
@@ -68,7 +86,7 @@ func (db *readDB) First(m interface{}, n ...string) {
 		mNamer, assertable := m.(namer)
 		if !assertable {
 			db.err = errors.New("model is not assertable as an table namer")
-			return
+			return nil, false
 		}
 		tableName = mNamer.TableName()
 	}
@@ -80,7 +98,7 @@ func (db *readDB) First(m interface{}, n ...string) {
 	if joins != "" {
 		x = x.Joins(joins)
 	}
-	x.Where(conditions, selectors...).First(m)
+	return x.Where(conditions, selectors...), true
 }
 
 func (db readDB) readAuthorization(t string) (string, string, []interface{}) {
@@ -105,33 +123,6 @@ func (db readDB) readAuthorization(t string) (string, string, []interface{}) {
 	}
 
 	return joins, conditions, selectors
-}
-
-func (db *readDB) Find(m interface{}, n ...string) {
-	if db.err != nil {
-		return
-	}
-
-	tableName := ""
-	if len(n) > 0 {
-		tableName = n[0]
-	} else {
-		mNamer, assertable := m.(namer)
-		if !assertable {
-			db.err = errors.New("model is not assertable as an table namer")
-			return
-		}
-		tableName = mNamer.TableName()
-	}
-
-	x := db.orm
-	db.orm = db.orm.New()
-
-	joins, conditions, selectors := db.readAuthorization(tableName)
-	if joins != "" {
-		x = x.Joins(joins)
-	}
-	x.Where(conditions, selectors...).Find(m)
 }
 
 func (db *readDB) Preload(f, t string) storage.DBReader {
