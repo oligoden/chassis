@@ -24,11 +24,6 @@ const (
 )
 
 func TestMigration(t *testing.T) {
-	store := gormdb.New(dbt, uri)
-
-	dMatch := NewDevice(store)
-	dMatch.Manage("migrate")
-
 	db, err := gorm.Open(dbt, uri)
 	if err != nil {
 		t.Error(err)
@@ -37,6 +32,14 @@ func TestMigration(t *testing.T) {
 	if !db.HasTable("users") {
 		t.Error(`expected table users`)
 	}
+
+	cleanDBUserTables()
+	setupDBTable(&TestModel{}, db)
+
+	store := gormdb.New(dbt, uri)
+	dMatch := NewDevice(store)
+	dMatch.Manage("migrate")
+
 	db.Close()
 	err = db.Error
 	if err != nil {

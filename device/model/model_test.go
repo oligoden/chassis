@@ -4,6 +4,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/jinzhu/gorm"
@@ -51,19 +52,85 @@ func TestHashing(t *testing.T) {
 
 func TestBindStartError(t *testing.T) {
 	m := &Model{}
-	m.Default = model.Default{Err: errors.New("error")}
+	m.Default = model.Default{}
+
 	m.Bind()
-	if m.Error() == nil {
-		t.Error(`expected error`)
+	exp := "request not set"
+	got := m.Error().Error()
+	if got != exp {
+		t.Errorf(`expected "%s", got "%s"`, exp, got)
+	}
+
+	// calling Bind() with existing error should return immediately
+	m.Bind()
+	exp = "request not set"
+	got = m.Error().Error()
+	if got != exp {
+		t.Errorf(`expected "%s", got "%s"`, exp, got)
+	}
+}
+
+func TestBindUserNoUserError(t *testing.T) {
+	m := &Model{}
+	m.Default = model.Default{
+		Request: httptest.NewRequest(http.MethodPost, "/", nil),
+	}
+
+	m.Bind()
+	exp := `strconv.Atoi: parsing "": invalid syntax`
+	got := m.Error().Error()
+	if got != exp {
+		t.Errorf(`expected "%s", got "%s"`, exp, got)
+	}
+}
+
+func TestBindUserNotUserIntError(t *testing.T) {
+	m := &Model{}
+	req := httptest.NewRequest(http.MethodPost, "/", nil)
+	req.Header.Set("X_Session_User", "a")
+	m.Default = model.Default{
+		Request: req,
+	}
+
+	m.Bind()
+	exp := `strconv.Atoi: parsing "a": invalid syntax`
+	got := m.Error().Error()
+	if got != exp {
+		t.Errorf(`expected "%s", got "%s"`, exp, got)
+	}
+}
+
+func TestBindNotGroupIntError(t *testing.T) {
+	m := &Model{}
+	req := httptest.NewRequest(http.MethodPost, "/", nil)
+	req.Header.Set("X_Session_User", "1")
+	req.Header.Set("X_User_Groups", "a")
+	m.Default = model.Default{
+		Request: req,
+	}
+
+	m.Bind()
+	exp := `strconv.Atoi: parsing "a": invalid syntax`
+	got := m.Error().Error()
+	if got != exp {
+		t.Errorf(`expected "%s", got "%s"`, exp, got)
 	}
 }
 
 func TestBindNoDataError(t *testing.T) {
 	m := &Model{}
-	m.Default = model.Default{}
+	req := httptest.NewRequest(http.MethodPost, "/", nil)
+	req.Header.Set("X_Session_User", "1")
+	req.Header.Set("X_User_Groups", "1")
+	m.Default = model.Default{
+		Request: req,
+	}
+
 	m.Bind()
-	if m.Error() == nil {
-		t.Error(`expected error`)
+	exp := "no data set"
+	got := m.Error().Error()
+	if got != exp {
+		t.Errorf(`expected "%s", got "%s"`, exp, got)
 	}
 }
 

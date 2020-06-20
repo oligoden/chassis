@@ -3,8 +3,11 @@ package model
 import (
 	"crypto/sha1"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
+	"strings"
 
 	"github.com/oligoden/chassis/device/model/data"
 	"github.com/oligoden/chassis/storage"
@@ -22,6 +25,7 @@ type Operator interface {
 
 type Communicator interface {
 	Bind()
+	User() (uint, []uint)
 	Hasher()
 	Error() error
 }
@@ -34,23 +38,53 @@ type Default struct {
 	Request *http.Request        `json:"-"`
 	NewData func() data.Operator `json:"-"`
 	Hash    string               `json:"hash"`
-	Err     error                `json:"-"`
+	user    uint
+	groups  []uint
+	err     error
 	data    data.Operator
 }
 
+func (d Default) User() (uint, []uint) {
+	return d.user, d.groups
+}
+
 func (m *Default) Bind() {
-	if m.Err != nil {
+	if m.err != nil {
 		return
+	}
+
+	if m.Request == nil {
+		m.err = errors.New("request not set")
+		return
+	}
+
+	u := m.Request.Header.Get("X_Session_User")
+	user, err := strconv.Atoi(u)
+	if err != nil {
+		m.err = err
+		return
+	}
+	m.user = uint(user)
+
+	if m.Request.Header.Get("X_User_Groups") != "" {
+		for _, g := range strings.Split(m.Request.Header.Get("X_User_Groups"), ",") {
+			group, err := strconv.Atoi(g)
+			if err != nil {
+				m.err = err
+				return
+			}
+			m.groups = append(m.groups, uint(group))
+		}
 	}
 
 	if m.data == nil {
-		m.Err = fmt.Errorf("no data set")
+		m.err = fmt.Errorf("no data set")
 		return
 	}
 
-	err := m.bind()
+	err = m.bind()
 	if err != nil {
-		m.Err = err
+		m.err = err
 		return
 	}
 }
@@ -65,7 +99,7 @@ func (m *Default) Data(d ...data.Operator) data.Operator {
 func (m *Default) Hasher() {
 	json, err := json.Marshal(m.data)
 	if err != nil {
-		m.Err = err
+		m.err = err
 		return
 	}
 	h := sha1.New()
@@ -74,43 +108,43 @@ func (m *Default) Hasher() {
 }
 
 func (m *Default) Error() error {
-	return m.Err
+	return m.err
 }
 
 func (m *Default) Manage(db storage.DBManager, action string) {
-	if m.Err != nil {
+	if m.err != nil {
 		return
 	}
 
 	db.Manage(m.data, action)
 	err := db.Error()
 	if err != nil {
-		m.Err = err
+		m.err = err
 		return
 	}
 }
 
 func (m *Default) Create(db storage.DBCreater) {
-	if m.Err != nil {
+	if m.err != nil {
 		return
 	}
 
 	err := m.data.Prepare()
 	if err != nil {
-		m.Err = err
+		m.err = err
 		return
 	}
 
 	db.Create(m.data)
 	err = db.Error()
 	if err != nil {
-		m.Err = err
+		m.err = err
 		return
 	}
 
 	err = m.data.Hasher()
 	if err != nil {
-		m.Err = err
+		m.err = err
 		return
 	}
 
@@ -118,13 +152,13 @@ func (m *Default) Create(db storage.DBCreater) {
 	dbUpdater.Save(m.data, "with-create")
 	err = dbUpdater.Error()
 	if err != nil {
-		m.Err = err
+		m.err = err
 		return
 	}
 
 	err = m.data.Complete()
 	if err != nil {
-		m.Err = err
+		m.err = err
 		return
 	}
 
@@ -132,26 +166,26 @@ func (m *Default) Create(db storage.DBCreater) {
 }
 
 func (m *Default) Read(db storage.DBReader) {
-	if m.Err != nil {
+	if m.err != nil {
 		return
 	}
 
 	err := m.data.Prepare()
 	if err != nil {
-		m.Err = err
+		m.err = err
 		return
 	}
 
 	m.data.Read(db)
 	err = db.Error()
 	if err != nil {
-		m.Err = err
+		m.err = err
 		return
 	}
 
 	err = m.data.Complete()
 	if err != nil {
-		m.Err = err
+		m.err = err
 		return
 	}
 

@@ -6,12 +6,11 @@ import (
 
 func (d Default) Create() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		d.Bind(r)
 		m := d.NewModel(r)
-		v := d.NewView(w)
-		db := d.Store.CreateDB(d.User())
-
 		m.Bind()
+		v := d.NewView(w)
+		db := d.Store.CreateDB(m.User())
+
 		m.Create(db)
 		db.Close()
 
@@ -21,10 +20,10 @@ func (d Default) Create() http.Handler {
 
 func (d Default) Read() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		d.Bind(r)
 		m := d.NewModel(r)
+		m.Bind()
 		v := d.NewView(w)
-		db := d.Store.ReadDB(d.User())
+		db := d.Store.ReadDB(m.User())
 
 		m.Read(db)
 		db.Close()

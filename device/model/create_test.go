@@ -1,7 +1,6 @@
 package model_test
 
 import (
-	"errors"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -16,7 +15,11 @@ import (
 
 func TestCreateStartError(t *testing.T) {
 	m := &Model{}
-	m.Default = model.Default{Err: errors.New("error")}
+	m.Default = model.Default{}
+
+	// simulate error, no request set
+	m.Bind()
+
 	s := gormdb.New(dbt, uri)
 	db := s.CreateDB(1, []uint{})
 	m.Create(db)
@@ -131,6 +134,7 @@ func TestCreate(t *testing.T) {
 	f.Set("field", "test")
 	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(f.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("X_Session_User", "1")
 
 	m := &Model{}
 	m.Default = model.Default{}
