@@ -12,7 +12,6 @@ type Operator interface {
 	Prepare() error
 	Complete() error
 	Read(storage.DBReader) error
-	Response() interface{}
 	Hasher() error
 	TableName() string
 	storage.Authenticator
@@ -36,10 +35,6 @@ func (m Default) Read(db storage.DBReader) error {
 
 func (m Default) Complete() error {
 	return nil
-}
-
-func (m Default) Response() interface{} {
-	return m
 }
 
 func (m *Default) TableName() string {
