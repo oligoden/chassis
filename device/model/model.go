@@ -27,7 +27,7 @@ type Communicator interface {
 	Bind()
 	User() (uint, []uint)
 	Hasher()
-	Error() error
+	Error(...interface{}) error
 }
 
 type DataSelector interface {
@@ -40,7 +40,7 @@ type Default struct {
 	Hash    string               `json:"hash"`
 	user    uint
 	groups  []uint
-	err     error
+	err     []error
 	data    data.Operator
 }
 
@@ -49,19 +49,19 @@ func (d Default) User() (uint, []uint) {
 }
 
 func (m *Default) Bind() {
-	if m.err != nil {
+	if m.Error() != nil {
 		return
 	}
 
 	if m.Request == nil {
-		m.err = errors.New("request not set")
+		m.Error("request not set")
 		return
 	}
 
 	u := m.Request.Header.Get("X_Session_User")
 	user, err := strconv.Atoi(u)
 	if err != nil {
-		m.err = err
+		m.Error(err)
 		return
 	}
 	m.user = uint(user)
@@ -70,7 +70,7 @@ func (m *Default) Bind() {
 		for _, g := range strings.Split(m.Request.Header.Get("X_User_Groups"), ",") {
 			group, err := strconv.Atoi(g)
 			if err != nil {
-				m.err = err
+				m.Error(err)
 				return
 			}
 			m.groups = append(m.groups, uint(group))
@@ -78,13 +78,13 @@ func (m *Default) Bind() {
 	}
 
 	if m.data == nil {
-		m.err = fmt.Errorf("no data set")
+		m.Error("no data set")
 		return
 	}
 
 	err = m.bind()
 	if err != nil {
-		m.err = err
+		m.Error(err)
 		return
 	}
 }
@@ -99,7 +99,7 @@ func (m *Default) Data(d ...data.Operator) data.Operator {
 func (m *Default) Hasher() {
 	json, err := json.Marshal(m.data)
 	if err != nil {
-		m.err = err
+		m.Error(err)
 		return
 	}
 	h := sha1.New()
@@ -107,44 +107,63 @@ func (m *Default) Hasher() {
 	m.Hash = fmt.Sprintf("%x", h.Sum(nil))
 }
 
-func (m *Default) Error() error {
-	return m.err
+func (m *Default) Error(es ...interface{}) error {
+	if m.err == nil {
+		m.err = []error{}
+	}
+
+	for _, e := range es {
+		switch t := e.(type) {
+		case string:
+			m.err = append(m.err, errors.New(t))
+		case error:
+			m.err = append(m.err, t)
+		default:
+			m.err = append(m.err, errors.New("unknown error type"))
+		}
+	}
+
+	if len(m.err) == 0 {
+		return nil
+	}
+
+	return m.err[0]
 }
 
 func (m *Default) Manage(db storage.DBManager, action string) {
-	if m.err != nil {
+	if m.Error() != nil {
 		return
 	}
 
 	db.Manage(m.data, action)
 	err := db.Error()
 	if err != nil {
-		m.err = err
+		m.Error(err)
 		return
 	}
 }
 
 func (m *Default) Create(db storage.DBCreater) {
-	if m.err != nil {
+	if m.Error() != nil {
 		return
 	}
 
 	err := m.data.Prepare()
 	if err != nil {
-		m.err = err
+		m.Error(err)
 		return
 	}
 
 	db.Create(m.data)
 	err = db.Error()
 	if err != nil {
-		m.err = err
+		m.Error(err)
 		return
 	}
 
 	err = m.data.Hasher()
 	if err != nil {
-		m.err = err
+		m.Error(err)
 		return
 	}
 
@@ -152,13 +171,13 @@ func (m *Default) Create(db storage.DBCreater) {
 	dbUpdater.Save(m.data, "with-create")
 	err = dbUpdater.Error()
 	if err != nil {
-		m.err = err
+		m.Error(err)
 		return
 	}
 
 	err = m.data.Complete()
 	if err != nil {
-		m.err = err
+		m.Error(err)
 		return
 	}
 
@@ -166,26 +185,26 @@ func (m *Default) Create(db storage.DBCreater) {
 }
 
 func (m *Default) Read(db storage.DBReader) {
-	if m.err != nil {
+	if m.Error() != nil {
 		return
 	}
 
 	err := m.data.Prepare()
 	if err != nil {
-		m.err = err
+		m.Error(err)
 		return
 	}
 
 	m.data.Read(db)
 	err = db.Error()
 	if err != nil {
-		m.err = err
+		m.Error(err)
 		return
 	}
 
 	err = m.data.Complete()
 	if err != nil {
-		m.err = err
+		m.Error(err)
 		return
 	}
 

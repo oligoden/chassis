@@ -1,7 +1,6 @@
 package data_test
 
 import (
-	"encoding/json"
 	"testing"
 
 	"github.com/oligoden/chassis/device/model/data"
@@ -25,18 +24,6 @@ func TestComplete(t *testing.T) {
 	x := data.Default{}
 	if x.Complete() != nil {
 		t.Error("expected nil")
-	}
-}
-
-func TestResponse(t *testing.T) {
-	x := data.Default{
-		UC: "abc",
-	}
-	gotJSON, _ := json.Marshal(x.Response())
-	got := string(gotJSON)
-	exp := `{"uc":"abc"}`
-	if got != exp {
-		t.Errorf(`expected '%s', got '%s'`, exp, got)
 	}
 }
 
