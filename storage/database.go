@@ -19,7 +19,6 @@ type DBCreater interface {
 type DBReader interface {
 	dbManager
 	dbReader
-	// Error() error
 }
 
 type dbReader interface {
@@ -41,7 +40,6 @@ type dbUpdater interface {
 type DBUpdater interface {
 	dbManager
 	dbUpdater
-	// Error() error
 }
 
 type dbAssociator interface {
@@ -51,13 +49,11 @@ type dbAssociator interface {
 type DBAssociator interface {
 	dbManager
 	dbAssociator
-	// Error() error
 }
 
 type DBManager interface {
 	dbManager
 	Manage(interface{}, string)
-	// Error() error
 }
 
 type dbManager interface {
@@ -72,4 +68,5 @@ type Authenticator interface {
 	Permissions(...string) string
 	Owner(...uint) uint
 	Groups(...uint) []uint
+	Users(...uint) []uint
 }

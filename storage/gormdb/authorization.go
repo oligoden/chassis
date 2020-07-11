@@ -2,6 +2,7 @@ package gormdb
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/oligoden/chassis/storage"
@@ -13,6 +14,11 @@ func Authorize(m storage.Authenticator, p string, user uint, groups []uint) (boo
 		return false, errors.New("the model has incorrect permissions format")
 	}
 
+	if m.Owner() == user && p != "c" {
+		fmt.Println("owner", m.Owner(), user)
+		return true, nil
+	}
+
 	if strings.Contains(perms[3], p) {
 		return true, nil
 	}
@@ -20,16 +26,18 @@ func Authorize(m storage.Authenticator, p string, user uint, groups []uint) (boo
 	if user != 0 {
 		if strings.Contains(perms[2], p) {
 			return true, nil
-		} else if strings.Contains(perms[0], p) {
-			if m.Owner() == user {
-				return true, nil
-			}
 		} else if strings.Contains(perms[1], p) {
 			for _, g := range m.Groups() {
 				for _, gi := range groups {
 					if g == gi {
 						return true, nil
 					}
+				}
+			}
+		} else if strings.Contains(perms[0], p) {
+			for _, u := range m.Users() {
+				if u == user {
+					return true, nil
 				}
 			}
 		}

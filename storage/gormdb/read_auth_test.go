@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/jinzhu/gorm"
-
 	"github.com/oligoden/chassis/storage/gormdb"
 )
 
@@ -18,119 +17,127 @@ func TestReadAuthorization(t *testing.T) {
 	cleanDBUserTables()
 	storage := gormdb.New(dbt, uri)
 
-	mGroup := &gormdb.Group{Owner: 1}
-	db.Create(mGroup)
-	mGroup = &gormdb.Group{Owner: 2}
-	db.Create(mGroup)
 	mRecordGroup := &gormdb.RecordGroup{
 		GroupID:  1,
-		RecordID: "a",
-		Owner:    2,
+		RecordID: "x",
 	}
 	db.Create(mRecordGroup)
-	setupDBTable(&TestModel{}, db)
+	mRecordUser := &gormdb.RecordUser{
+		RecordID: "x",
+		UserID:   2,
+	}
+	db.Create(mRecordUser)
 
 	testCases := []struct {
-		desc       string
-		user       uint
-		recOwnerID uint
-		groups     []uint
-		perms      string
-		setField   string
-		expField   string
+		desc     string
+		user     uint
+		groups   []uint
+		recPerms string
+		recHash  string
+		setField string
+		expField string
 	}{
 		{
 			desc:     "Pass_Z",
-			user:     0,
-			groups:   []uint{},
-			perms:    ":::r",
+			recPerms: ":::r",
 			setField: "a",
 			expField: "a",
 		},
 		{
 			desc:     "Fail_Z",
-			user:     0,
-			groups:   []uint{},
-			perms:    ":::",
+			recPerms: ":::",
 			setField: "a",
 			expField: "",
 		},
 		{
 			desc:     "Pass_A",
-			user:     1,
-			groups:   []uint{},
-			perms:    "::r:",
+			user:     2,
+			recPerms: "::r:",
 			setField: "b",
 			expField: "b",
 		},
 		{
-			desc:     "Fail1_A_missing_permission",
-			user:     1,
-			groups:   []uint{},
-			perms:    ":::",
+			desc:     "Fail_A_missing_permission",
+			user:     2,
+			recPerms: ":::",
 			setField: "b",
 			expField: "",
 		},
 		{
-			desc:     "Fail2_A_missing_userID",
+			desc:     "Fail_A_missing_userID",
 			user:     0,
-			groups:   []uint{},
-			perms:    "::r:",
+			recPerms: "::r:",
 			setField: "b",
 			expField: "",
 		},
 		{
-			desc:       "Pass_G",
-			user:       1,
-			groups:     []uint{2},
-			perms:      ":r::",
-			recOwnerID: 2,
-			setField:   "a",
-			expField:   "a",
-		},
-		{
-			desc:       "Pass_G_RecordGroup",
-			user:       1,
-			groups:     []uint{1},
-			perms:      ":r::",
-			recOwnerID: 2,
-			setField:   "a",
-			expField:   "a",
+			desc:     "Pass_G",
+			user:     2,
+			groups:   []uint{1},
+			recPerms: ":r::",
+			recHash:  "x",
+			setField: "a",
+			expField: "a",
 		},
 		{
 			desc:     "Fail_G_missing_group",
-			user:     1,
+			user:     2,
 			groups:   []uint{},
-			perms:    ":r::",
+			recPerms: ":r::",
+			recHash:  "x",
 			setField: "a",
 			expField: "",
 		},
 		{
 			desc:     "Fail_G_missing_permission",
-			user:     1,
+			user:     2,
 			groups:   []uint{2},
-			perms:    ":::",
+			recPerms: ":::",
+			recHash:  "x",
 			setField: "a",
 			expField: "",
 		},
 		{
-			desc:       "Pass_O",
-			user:       1,
-			groups:     []uint{},
-			perms:      ":::",
-			recOwnerID: 1,
-			setField:   "a",
-			expField:   "a",
+			desc:     "Pass_U",
+			user:     2,
+			recPerms: "r:::",
+			recHash:  "x",
+			setField: "a",
+			expField: "a",
+		},
+		{
+			desc:     "Fail_U_missing_wrong_user",
+			user:     3,
+			recPerms: "r:::",
+			recHash:  "x",
+			setField: "a",
+			expField: "",
+		},
+		{
+			desc:     "Fail_U_missing_permission",
+			user:     2,
+			recPerms: ":::",
+			recHash:  "x",
+			setField: "a",
+			expField: "",
+		},
+		{
+			desc:     "Pass_O",
+			user:     1,
+			recPerms: ":::",
+			setField: "a",
+			expField: "a",
 		},
 	}
 	for _, tC := range testCases {
 		t.Run(tC.desc, func(t *testing.T) {
 			setupDBTable(&TestModel{}, db)
+
 			m := &TestModel{
 				Field:   tC.expField,
-				Hash:    tC.expField,
-				Perms:   tC.perms,
-				OwnerID: tC.recOwnerID,
+				Hash:    tC.recHash,
+				Perms:   tC.recPerms,
+				OwnerID: 1,
 			}
 			db.Create(m)
 

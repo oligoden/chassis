@@ -4,19 +4,19 @@ import (
 	"testing"
 
 	"github.com/jinzhu/gorm"
-
 	"github.com/oligoden/chassis/storage/gormdb"
 )
 
 func TestReadWhere(t *testing.T) {
-	cleanDBUserTables()
-	setupDBTable(&TestModel{})
-
 	db, err := gorm.Open(dbt, uri)
 	if err != nil {
 		t.Error(err)
 	}
 	db.LogMode(true)
+
+	cleanDBUserTables(db)
+	setupDBTable(&TestModel{}, db)
+
 	m := &TestModel{Field: "a", Perms: ":::r"}
 	db.Create(m)
 	db.Close()
@@ -38,14 +38,15 @@ func TestReadWhere(t *testing.T) {
 }
 
 func TestReadNewRecord(t *testing.T) {
-	cleanDBUserTables()
-	setupDBTable(&TestModel{})
-
 	db, err := gorm.Open(dbt, uri)
 	if err != nil {
 		t.Error(err)
 	}
 	db.LogMode(true)
+
+	cleanDBUserTables(db)
+	setupDBTable(&TestModel{}, db)
+
 	m := &TestModel{Field: "a", Perms: ":::r"}
 	db.Create(m)
 	db.Close()
@@ -73,19 +74,20 @@ func TestReadNewRecord(t *testing.T) {
 }
 
 func TestReadFirstWithError(t *testing.T) {
-	cleanDBUserTables()
-	setupDBTable(&TestModel{})
-
 	db, err := gorm.Open(dbt, uri)
 	if err != nil {
 		t.Error(err)
 	}
 	db.LogMode(true)
+
+	cleanDBUserTables(db)
+	setupDBTable(&TestModel{}, db)
+
 	m := &TestModel{Field: "a", Perms: ":::r"}
 	db.Create(m)
 	db.Close()
 
-	// simulate error
+	// simulate error with incorrect connection
 	storage := gormdb.New("", "")
 	dbRead := storage.ReadDB(0, []uint{})
 
@@ -97,6 +99,8 @@ func TestReadFirstWithError(t *testing.T) {
 	dbRead.First(m)
 	dbRead.Close()
 
+	// the read should not return data, it returns immediately
+	// because of the error
 	exp := uint(0)
 	got := m.TestModelID
 	if exp != got {
@@ -105,15 +109,16 @@ func TestReadFirstWithError(t *testing.T) {
 }
 
 func TestReads(t *testing.T) {
-	cleanDBUserTables()
-	setupDBTable(&TestModel{})
-	setupDBTable(&WeakModel{})
-
 	db, err := gorm.Open(dbt, uri)
 	if err != nil {
 		t.Error(err)
 	}
 	db.LogMode(true)
+
+	cleanDBUserTables(db)
+	setupDBTable(&WeakModel{}, db)
+	setupDBTable(&TestModel{}, db)
+
 	m := &TestModel{UC: "a", Perms: ":::r"}
 	db.Create(m)
 	m = &TestModel{UC: "b", Perms: ":::r"}
@@ -147,13 +152,13 @@ func TestReads(t *testing.T) {
 		t.Errorf(`expected "%d", got "%d"`, exp, got)
 	}
 
-	mm := TestModels{}
-	dbRead.Find(&mm)
+	ms := TestModels{}
+	dbRead.Find(&ms)
 	if dbRead.Error() != nil {
 		t.Error(dbRead.Error())
 	}
 	exp = uint(2)
-	got = uint(len(mm))
+	got = uint(len(ms))
 	if exp != got {
 		t.Errorf(`expected "%d", got "%d"`, exp, got)
 	}
@@ -179,15 +184,16 @@ func TestReads(t *testing.T) {
 }
 
 func TestReadToCreaterUpdater(t *testing.T) {
-	cleanDBUserTables()
-	setupDBTable(&TestModel{})
-	setupDBTable(&SubModel{})
-
 	db, err := gorm.Open(dbt, uri)
 	if err != nil {
 		t.Error(err)
 	}
 	db.LogMode(true)
+
+	cleanDBUserTables(db)
+	setupDBTable(&TestModel{}, db)
+	setupDBTable(&SubModel{}, db)
+
 	m := &TestModel{Field: "a", Perms: ":::r"}
 	db.Create(m)
 	db.Close()
@@ -251,15 +257,16 @@ func TestReadToCreaterUpdater(t *testing.T) {
 }
 
 func TestReadPreloadWithError(t *testing.T) {
-	cleanDBUserTables()
-	setupDBTable(&TestModel{})
-	setupDBTable(&SubModel{})
-
 	db, err := gorm.Open(dbt, uri)
 	if err != nil {
 		t.Error(err)
 	}
 	db.LogMode(true)
+
+	cleanDBUserTables(db)
+	setupDBTable(&TestModel{}, db)
+	setupDBTable(&SubModel{}, db)
+
 	m := &TestModel{Field: "a", Perms: ":::r"}
 	db.Create(m)
 	mSubModel := &SubModel{
@@ -278,7 +285,7 @@ func TestReadPreloadWithError(t *testing.T) {
 	db.Create(mSubModel)
 	db.Close()
 
-	// simulate error
+	// simulate error with incorrect connection
 	storage := gormdb.New("", "")
 	dbRead := storage.ReadDB(0, []uint{})
 
@@ -290,21 +297,24 @@ func TestReadPreloadWithError(t *testing.T) {
 	dbRead.Preload("SubModels", "submodels").First(m)
 	dbRead.Close()
 
+	// the preload should not return data, it returns immediately
+	// because of the error
 	if len(m.SubModels) != 0 {
 		t.Error(`expected no preloaded submodels`)
 	}
 }
 
 func TestReadPreload(t *testing.T) {
-	cleanDBUserTables()
-	setupDBTable(&TestModel{})
-	setupDBTable(&SubModel{})
-
 	db, err := gorm.Open(dbt, uri)
 	if err != nil {
 		t.Error(err)
 	}
 	db.LogMode(true)
+
+	cleanDBUserTables(db)
+	setupDBTable(&TestModel{}, db)
+	setupDBTable(&SubModel{}, db)
+
 	m := &TestModel{Field: "a", Perms: ":::r"}
 	db.Create(m)
 	mSubModel := &SubModel{

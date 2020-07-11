@@ -10,9 +10,15 @@ import (
 )
 
 func TestUniqueCodeGeneration(t *testing.T) {
-	t.SkipNow()
-	cleanDBUserTables()
-	setupDBTable(&TestModel{})
+	db, err := gorm.Open(dbt, uri)
+	if err != nil {
+		t.Error(err)
+	}
+	db.LogMode(true)
+
+	cleanDBUserTables(db)
+	setupDBTable(&TestModel{}, db)
+	db.Close()
 
 	storage := gormdb.New(dbt, uri)
 	storage.UniqueCodeFunc(chassis.RandNumberString)
@@ -36,11 +42,17 @@ func TestUniqueCodeGeneration(t *testing.T) {
 }
 
 func TestCreateWithError(t *testing.T) {
-	t.SkipNow()
-	cleanDBUserTables()
-	setupDBTable(&TestModel{})
+	db, err := gorm.Open(dbt, uri)
+	if err != nil {
+		t.Error(err)
+	}
+	db.LogMode(true)
 
-	// simulate error
+	cleanDBUserTables(db)
+	setupDBTable(&TestModel{}, db)
+	db.Close()
+
+	// simulate error with incorrect connection
 	storage := gormdb.New("", "")
 	dbCreate := storage.CreateDB(0, []uint{})
 
@@ -60,12 +72,18 @@ func TestCreateWithError(t *testing.T) {
 }
 
 func TestCreateAuthFailure(t *testing.T) {
-	t.SkipNow()
-	cleanDBUserTables()
-	setupDBTable(&TestModel{})
+	db, err := gorm.Open(dbt, uri)
+	if err != nil {
+		t.Error(err)
+	}
+	db.LogMode(true)
+
+	cleanDBUserTables(db)
+	setupDBTable(&TestModel{}, db)
+	db.Close()
 
 	storage := gormdb.New(dbt, uri)
-	dbCreate := storage.CreateDB(0, []uint{})
+	dbCreate := storage.CreateDB(2, []uint{})
 
 	m := &TestModel{}
 	m.Perms = ":::"
@@ -74,6 +92,7 @@ func TestCreateAuthFailure(t *testing.T) {
 
 	if dbCreate.Error() == nil {
 		t.Error(`expected error`)
+		t.FailNow()
 	}
 	exp := "create authorization failed"
 	got := dbCreate.Error().Error()
@@ -83,9 +102,15 @@ func TestCreateAuthFailure(t *testing.T) {
 }
 
 func TestCreateAuthError(t *testing.T) {
-	t.SkipNow()
-	cleanDBUserTables()
-	setupDBTable(&TestModel{})
+	db, err := gorm.Open(dbt, uri)
+	if err != nil {
+		t.Error(err)
+	}
+	db.LogMode(true)
+
+	cleanDBUserTables(db)
+	setupDBTable(&TestModel{}, db)
+	db.Close()
 
 	storage := gormdb.New(dbt, uri)
 	dbCreate := storage.CreateDB(0, []uint{})
@@ -97,6 +122,7 @@ func TestCreateAuthError(t *testing.T) {
 
 	if dbCreate.Error() == nil {
 		t.Error(`expected error`)
+		t.FailNow()
 	}
 	exp := "the model has incorrect permissions format"
 	got := dbCreate.Error().Error()
@@ -106,9 +132,14 @@ func TestCreateAuthError(t *testing.T) {
 }
 
 func TestCreateToUpdate(t *testing.T) {
-	t.SkipNow()
-	cleanDBUserTables()
-	setupDBTable(&TestModel{})
+	db, err := gorm.Open(dbt, uri)
+	if err != nil {
+		t.Error(err)
+	}
+	db.LogMode(true)
+
+	cleanDBUserTables(db)
+	setupDBTable(&TestModel{}, db)
 
 	storage := gormdb.New(dbt, uri)
 	dbCreate := storage.CreateDB(0, []uint{})
@@ -127,18 +158,9 @@ func TestCreateToUpdate(t *testing.T) {
 		t.Error(dbUpdate.Error())
 	}
 
-	db, err := gorm.Open(dbt, uri)
-	if err != nil {
-		t.Error(err)
-	}
-	db.LogMode(true)
-
 	m = &TestModel{}
 	db.First(m)
-
-	if err := db.Close(); err != nil {
-		t.Error(err)
-	}
+	db.Close()
 
 	exp := "b"
 	got := m.Field

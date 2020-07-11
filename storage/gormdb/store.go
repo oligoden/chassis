@@ -35,6 +35,7 @@ func New(dbt, uri string) *Store {
 	db.AutoMigrate(&Group{})
 	// db.AutoMigrate(&UserGroup{})
 	db.AutoMigrate(&RecordGroup{})
+	db.AutoMigrate(&RecordUser{})
 	db.Close()
 	err = db.Error
 	if err != nil {
@@ -98,8 +99,17 @@ func (Group) TableName() string {
 type RecordGroup struct {
 	ID       uint      `gorm:"primary_key"`
 	TS       time.Time `sql:"DEFAULT:CURRENT_TIMESTAMP"`
-	GroupID  uint
 	RecordID string
+	GroupID  uint
+	Owner    uint
+	Perms    string
+}
+
+type RecordUser struct {
+	ID       uint      `gorm:"primary_key"`
+	TS       time.Time `sql:"DEFAULT:CURRENT_TIMESTAMP"`
+	RecordID string
+	UserID   uint
 	Owner    uint
 	Perms    string
 }

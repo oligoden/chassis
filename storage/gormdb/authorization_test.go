@@ -6,253 +6,134 @@ import (
 	"github.com/oligoden/chassis/storage/gormdb"
 )
 
-func TestAuthorizationFewPerms(t *testing.T) {
-	m := &TestModel{}
-	m.Perms = "::"
-
-	auth, err := gormdb.Authorize(m, "", 0, []uint{})
-	if !(err != nil && err.Error() == "the model has incorrect permissions format") {
-		t.Error(`expected incorrect permissions format error, got`, err)
+func TestAuthorization(t *testing.T) {
+	testCases := []struct {
+		desc      string
+		user      uint
+		groups    []uint
+		eGroups   []uint
+		eUsers    []uint
+		ePerms    string
+		operation string
+		expAuth   bool
+		expErr    string
+	}{
+		{
+			desc:   "too few params",
+			ePerms: "::",
+			expErr: "the model has incorrect permissions format",
+		},
+		{
+			desc:      "Z",
+			ePerms:    ":::u",
+			operation: "u",
+			expAuth:   true,
+		},
+		{
+			desc:      "Z, must fail, no operation",
+			ePerms:    ":::",
+			operation: "u",
+			expAuth:   false,
+		},
+		{
+			desc:      "A",
+			user:      2,
+			ePerms:    "::u:",
+			operation: "u",
+			expAuth:   true,
+		},
+		{
+			desc:      "A, must fail, unknown user",
+			user:      0,
+			ePerms:    "::u:",
+			operation: "u",
+			expAuth:   false,
+		},
+		{
+			desc:      "G",
+			user:      2,
+			groups:    []uint{1, 2, 3},
+			eGroups:   []uint{2, 4, 6},
+			ePerms:    ":u::",
+			operation: "u",
+			expAuth:   true,
+		},
+		{
+			desc:      "G, must fail, unknown user",
+			user:      0,
+			groups:    []uint{1},
+			eGroups:   []uint{1},
+			ePerms:    ":u::",
+			operation: "u",
+			expAuth:   false,
+		},
+		{
+			desc:      "G, must fail, wrong group",
+			user:      2,
+			groups:    []uint{2},
+			eGroups:   []uint{1},
+			ePerms:    ":u::",
+			operation: "u",
+			expAuth:   false,
+		},
+		{
+			desc:      "U",
+			user:      2,
+			eUsers:    []uint{1, 2, 3},
+			ePerms:    "u:::",
+			operation: "u",
+			expAuth:   true,
+		},
+		{
+			desc:      "U, must fail, unknown user",
+			user:      0,
+			eUsers:    []uint{1, 2, 3},
+			ePerms:    "u:::",
+			operation: "u",
+			expAuth:   false,
+		},
+		{
+			desc:      "U, must fail, wrong user",
+			user:      4,
+			eUsers:    []uint{1, 2, 3},
+			ePerms:    "u:::",
+			operation: "u",
+			expAuth:   false,
+		},
+		{
+			desc:      "O",
+			user:      1,
+			ePerms:    ":::",
+			operation: "u",
+			expAuth:   true,
+		},
+		{
+			desc:      "O",
+			user:      1,
+			ePerms:    ":::",
+			operation: "c",
+			expAuth:   false,
+		},
 	}
-	if auth {
-		t.Error(`expected false, got true`)
-	}
-}
+	for _, tC := range testCases {
+		t.Run(tC.desc, func(t *testing.T) {
+			e := &TestModel{}
+			e.Perms = tC.ePerms
+			e.Users(tC.eUsers...)
+			e.Groups(tC.eGroups...)
+			e.OwnerID = 1
 
-func TestAuthorizationONegOwner(t *testing.T) {
-	m := &TestModel{}
-	m.OwnerID = 1
-	m.Perms = "c:::"
-
-	auth, err := gormdb.Authorize(m, "c", 0, []uint{})
-	if err != nil {
-		t.Error(err)
-	}
-	if auth {
-		t.Error(`expected false, got true`)
-	}
-}
-
-func TestAuthorizationONegPerms(t *testing.T) {
-	m := &TestModel{}
-	m.OwnerID = 1
-	m.Perms = ":::"
-
-	auth, err := gormdb.Authorize(m, "c", 1, []uint{})
-	if err != nil {
-		t.Error(err)
-	}
-	if auth {
-		t.Error(`expected false, got true`)
-	}
-}
-
-func TestAuthorizationONegUser(t *testing.T) {
-	m := &TestModel{}
-	m.OwnerID = 1
-	m.Perms = "c:::"
-
-	auth, err := gormdb.Authorize(m, "c", 2, []uint{})
-	if err != nil {
-		t.Error(err)
-	}
-	if auth {
-		t.Error(`expected false, got true`)
-	}
-}
-
-func TestAuthorizationO(t *testing.T) {
-	m := &TestModel{}
-	m.OwnerID = 1
-	m.Perms = "c:::"
-
-	auth, err := gormdb.Authorize(m, "c", 1, []uint{})
-	if err != nil {
-		t.Error(err)
-	}
-	if !auth {
-		t.Error(`expected true, got false`)
-	}
-}
-
-func TestAuthorizationGNegOwner(t *testing.T) {
-	m := &TestModel{}
-	m.OwnerID = 1
-	m.Perms = ":c::"
-
-	auth, err := gormdb.Authorize(m, "c", 0, []uint{1})
-	if err != nil {
-		t.Error(err)
-	}
-	if auth {
-		t.Error(`expected false, got true`)
-	}
-}
-
-func TestAuthorizationGNegPerms(t *testing.T) {
-	m := &TestModel{}
-	m.OwnerID = 1
-	m.Perms = ":::"
-
-	auth, err := gormdb.Authorize(m, "c", 1, []uint{1})
-	if err != nil {
-		t.Error(err)
-	}
-	if auth {
-		t.Error(`expected false, got true`)
-	}
-}
-
-func TestAuthorizationGNegGroup(t *testing.T) {
-	m := &TestModel{}
-	m.OwnerID = 1
-	m.Perms = ":c::"
-
-	auth, err := gormdb.Authorize(m, "c", 1, []uint{1, 3})
-	if err != nil {
-		t.Error(err)
-	}
-	if auth {
-		t.Error(`expected false, got true`)
-	}
-}
-
-func TestAuthorizationG(t *testing.T) {
-	m := &TestModel{}
-	m.OwnerID = 1
-	m.groupIDs = []uint{7}
-	m.Perms = ":c::"
-
-	auth, err := gormdb.Authorize(m, "c", 1, []uint{5, 1, 7})
-	if err != nil {
-		t.Error(err)
-	}
-	if !auth {
-		t.Error(`expected true, got false`)
-	}
-}
-
-func TestAuthorizationANegOwner(t *testing.T) {
-	m := &TestModel{}
-	m.OwnerID = 1
-	m.Perms = "::c:"
-
-	auth, err := gormdb.Authorize(m, "c", 0, []uint{1})
-	if err != nil {
-		t.Error(err)
-	}
-	if auth {
-		t.Error(`expected false, got true`)
+			auth, err := gormdb.Authorize(e, tC.operation, tC.user, tC.groups)
+			if tC.expErr != "" && err == nil {
+				t.Errorf(`expected error "%s"`, tC.expErr)
+			} else if tC.expErr == "" && err != nil {
+				t.Errorf(`expected no error, got "%s"`, err)
+			} else if err != nil && err.Error() != tC.expErr {
+				t.Errorf(`expected error "%s", got "%s"`, tC.expErr, err)
+			}
+			if auth != tC.expAuth {
+				t.Errorf(`expected auth "%t", got "%t"`, tC.expAuth, auth)
+			}
+		})
 	}
 }
-
-func TestAuthorizationANegPerms(t *testing.T) {
-	m := &TestModel{}
-	m.OwnerID = 1
-	m.Perms = ":::"
-
-	auth, err := gormdb.Authorize(m, "c", 1, []uint{1})
-	if err != nil {
-		t.Error(err)
-	}
-	if auth {
-		t.Error(`expected false, got true`)
-	}
-}
-
-func TestAuthorizationA(t *testing.T) {
-	m := &TestModel{}
-	m.OwnerID = 1
-	m.Perms = "::c:"
-
-	auth, err := gormdb.Authorize(m, "c", 2, []uint{5, 1, 7})
-	if err != nil {
-		t.Error(err)
-	}
-	if !auth {
-		t.Error(`expected true, got false`)
-	}
-}
-
-func TestAuthorizationZNegPerms(t *testing.T) {
-	m := &TestModel{}
-	m.OwnerID = 1
-	m.Perms = ":::"
-
-	auth, err := gormdb.Authorize(m, "c", 1, []uint{1})
-	if err != nil {
-		t.Error(err)
-	}
-	if auth {
-		t.Error(`expected false, got true`)
-	}
-}
-
-func TestAuthorizationZ(t *testing.T) {
-	m := &TestModel{}
-	m.OwnerID = 1
-	m.Perms = ":::c"
-
-	auth, err := gormdb.Authorize(m, "c", 0, []uint{5, 1, 7})
-	if err != nil {
-		t.Error(err)
-	}
-	if !auth {
-		t.Error(`expected true, got false`)
-	}
-}
-
-func TestAuthorizationZUser(t *testing.T) {
-	m := &TestModel{}
-	m.OwnerID = 1
-	m.Perms = ":::c"
-
-	auth, err := gormdb.Authorize(m, "c", 2, []uint{5, 1, 7})
-	if err != nil {
-		t.Error(err)
-	}
-	if !auth {
-		t.Error(`expected true, got false`)
-	}
-}
-
-// func TestAuthorizationStoreNegPerms(t *testing.T) {
-// 	setupDBTable(&Match{})
-
-// 	recMatch := &Match{}
-// 	recMatch.perms = "::"
-
-// 	s := gormdb.NewStore(dbt, uri)
-// 	dbCreate := s.CreateDB(0, []uint{})
-// 	err := dbCreate.Create(recMatch).Error()
-
-// 	if !(err != nil && err.Error() == "the model has less than four permissions") {
-// 		t.Error(`expected less than four permissions error, got`, err)
-// 	}
-// 	dbCreate.Close()
-// }
-
-// func TestAuthorizationZNeg(t *testing.T) {
-// 	setupDBTable(&Match{})
-// 	store := store.NewStore(dbt, uri)
-
-// 	dbCreate := store.CreateDB(0, []uint{})
-// 	recMatch := &Match{}
-// 	recMatch.Owner = "jack"
-// 	recMatch.Group = "jack"
-// 	recMatch.Perms = ":::r"
-// 	err := dbCreate.Create(recMatch).Error()
-// 	if err != nil {
-// 		t.Error(err)
-// 	}
-
-// 	dbRead := store.ReadDB(0, []uint{})
-// 	recMatch = &Match{}
-// 	err = dbRead.First(recMatch).Error()
-// 	if !(err != nil && err.Error() == "record not found") {
-// 		t.Error(`expected no record, error:`, err)
-// 	}
-// 	dbRead.Close()
-
-// 	dropDBTable(&Match{})
-// }

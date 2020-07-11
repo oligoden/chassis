@@ -9,22 +9,21 @@ import (
 )
 
 func TestUpdateWithError(t *testing.T) {
-	t.SkipNow()
-	cleanDBUserTables()
-	setupDBTable(&TestModel{})
-
 	db, err := gorm.Open(dbt, uri)
 	if err != nil {
 		t.Error(err)
 	}
 	db.LogMode(true)
 
+	cleanDBUserTables(db)
+	setupDBTable(&TestModel{}, db)
+
 	m := &TestModel{Field: "a", Perms: ":::u"}
 	db.Create(m)
 
-	// simulate error
+	// simulate error with incorrect connection
 	storage := gormdb.New("", "")
-	dbUpdate := storage.UpdateDB(0, []uint{})
+	dbUpdate := storage.UpdateDB(2, []uint{})
 
 	if dbUpdate.Error() == nil {
 		t.Error(`expected error`)
@@ -36,10 +35,7 @@ func TestUpdateWithError(t *testing.T) {
 
 	m = &TestModel{}
 	db.First(m)
-
-	if err := db.Close(); err != nil {
-		t.Error(err)
-	}
+	db.Close()
 
 	exp := "a"
 	got := m.Field
@@ -49,27 +45,27 @@ func TestUpdateWithError(t *testing.T) {
 }
 
 func TestUpdateAuthFailure(t *testing.T) {
-	t.SkipNow()
-	cleanDBUserTables()
-	setupDBTable(&TestModel{})
-
 	db, err := gorm.Open(dbt, uri)
 	if err != nil {
 		t.Error(err)
 	}
 	db.LogMode(true)
 
+	cleanDBUserTables(db)
+	setupDBTable(&TestModel{}, db)
+
 	m := &TestModel{Field: "a", Perms: ":::"}
 	db.Create(m)
 
 	storage := gormdb.New(dbt, uri)
-	dbUpdate := storage.UpdateDB(0, []uint{})
+	dbUpdate := storage.UpdateDB(2, []uint{})
 	m.Field = "b"
 	dbUpdate.Save(m)
 	dbUpdate.Close()
 
 	if dbUpdate.Error() == nil {
 		t.Error(`expected error`)
+		t.FailNow()
 	}
 	exp := "update authorization failed"
 	got := dbUpdate.Error().Error()
@@ -79,10 +75,7 @@ func TestUpdateAuthFailure(t *testing.T) {
 
 	m = &TestModel{}
 	db.First(m)
-
-	if err := db.Close(); err != nil {
-		t.Error(err)
-	}
+	db.Close()
 
 	exp = "a"
 	got = m.Field
@@ -92,27 +85,27 @@ func TestUpdateAuthFailure(t *testing.T) {
 }
 
 func TestUpdateAuthError(t *testing.T) {
-	t.SkipNow()
-	cleanDBUserTables()
-	setupDBTable(&TestModel{})
-
 	db, err := gorm.Open(dbt, uri)
 	if err != nil {
 		t.Error(err)
 	}
 	db.LogMode(true)
 
+	cleanDBUserTables(db)
+	setupDBTable(&TestModel{}, db)
+
 	m := &TestModel{Field: "a", Perms: "::"}
 	db.Create(m)
 
 	storage := gormdb.New(dbt, uri)
-	dbUpdate := storage.UpdateDB(0, []uint{})
+	dbUpdate := storage.UpdateDB(2, []uint{})
 	m.Field = "b"
 	dbUpdate.Save(m)
 	dbUpdate.Close()
 
 	if dbUpdate.Error() == nil {
 		t.Error(`expected error`)
+		t.FailNow()
 	}
 	exp := "the model has incorrect permissions format"
 	got := dbUpdate.Error().Error()
@@ -122,10 +115,7 @@ func TestUpdateAuthError(t *testing.T) {
 
 	m = &TestModel{}
 	db.First(m)
-
-	if err := db.Close(); err != nil {
-		t.Error(err)
-	}
+	db.Close()
 
 	exp = "a"
 	got = m.Field
@@ -135,21 +125,20 @@ func TestUpdateAuthError(t *testing.T) {
 }
 
 func TestUpdate(t *testing.T) {
-	t.SkipNow()
-	cleanDBUserTables()
-	setupDBTable(&TestModel{})
-
 	db, err := gorm.Open(dbt, uri)
 	if err != nil {
 		t.Error(err)
 	}
 	db.LogMode(true)
 
+	cleanDBUserTables(db)
+	setupDBTable(&TestModel{}, db)
+
 	m := &TestModel{Field: "a", Perms: ":::u"}
 	db.Create(m)
 
 	storage := gormdb.New(dbt, uri)
-	dbUpdate := storage.UpdateDB(0, []uint{})
+	dbUpdate := storage.UpdateDB(2, []uint{})
 	m.Field = "b"
 	dbUpdate.Save(m)
 	dbUpdate.Close()
@@ -159,10 +148,7 @@ func TestUpdate(t *testing.T) {
 
 	m = &TestModel{}
 	db.First(m)
-
-	if err := db.Close(); err != nil {
-		t.Error(err)
-	}
+	db.Close()
 
 	exp := "b"
 	got := m.Field
@@ -172,27 +158,27 @@ func TestUpdate(t *testing.T) {
 }
 
 func TestUpdateWithCreateFail(t *testing.T) {
-	t.SkipNow()
-	cleanDBUserTables()
-	setupDBTable(&TestModel{})
-
 	db, err := gorm.Open(dbt, uri)
 	if err != nil {
 		t.Error(err)
 	}
 	db.LogMode(true)
 
+	cleanDBUserTables(db)
+	setupDBTable(&TestModel{}, db)
+
 	m := &TestModel{Field: "a", Perms: ":::c"}
 	db.Create(m)
 
 	storage := gormdb.New(dbt, uri)
-	dbUpdate := storage.UpdateDB(0, []uint{})
+	dbUpdate := storage.UpdateDB(2, []uint{})
 	m.Field = "b"
 	dbUpdate.Save(m)
 	dbUpdate.Close()
 
 	if dbUpdate.Error() == nil {
 		t.Error(`expected error`)
+		t.FailNow()
 	}
 	exp := "update authorization failed"
 	got := dbUpdate.Error().Error()
@@ -202,10 +188,7 @@ func TestUpdateWithCreateFail(t *testing.T) {
 
 	m = &TestModel{}
 	db.First(m)
-
-	if err := db.Close(); err != nil {
-		t.Error(err)
-	}
+	db.Close()
 
 	exp = "a"
 	got = m.Field
@@ -215,21 +198,20 @@ func TestUpdateWithCreateFail(t *testing.T) {
 }
 
 func TestUpdateWithCreate(t *testing.T) {
-	t.SkipNow()
-	cleanDBUserTables()
-	setupDBTable(&TestModel{})
-
 	db, err := gorm.Open(dbt, uri)
 	if err != nil {
 		t.Error(err)
 	}
 	db.LogMode(true)
 
+	cleanDBUserTables(db)
+	setupDBTable(&TestModel{}, db)
+
 	m := &TestModel{Field: "a", Perms: ":::c"}
 	db.Create(m)
 
 	storage := gormdb.New(dbt, uri)
-	dbUpdate := storage.UpdateDB(0, []uint{})
+	dbUpdate := storage.UpdateDB(2, []uint{})
 	m.Field = "b"
 	dbUpdate.Save(m, "with-create")
 	dbUpdate.Close()
@@ -239,10 +221,7 @@ func TestUpdateWithCreate(t *testing.T) {
 
 	m = &TestModel{}
 	db.First(m)
-
-	if err := db.Close(); err != nil {
-		t.Error(err)
-	}
+	db.Close()
 
 	exp := "b"
 	got := m.Field

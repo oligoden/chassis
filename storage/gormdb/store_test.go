@@ -31,7 +31,10 @@ func TestNew(t *testing.T) {
 		t.Error(`expected table groups`)
 	}
 	if !db.HasTable("record_groups") {
-		t.Error(`expected table groups`)
+		t.Error(`expected table record_groups`)
+	}
+	if !db.HasTable("record_users") {
+		t.Error(`expected table record_users`)
 	}
 	db.Close()
 	err = db.Error
@@ -40,18 +43,28 @@ func TestNew(t *testing.T) {
 	}
 }
 
-func cleanDBUserTables() {
-	db, err := gorm.Open(dbt, uri)
-	if err != nil {
-		log.Fatal(err)
+func cleanDBUserTables(dbs ...*gorm.DB) {
+	var db *gorm.DB
+	var err error
+
+	if len(dbs) > 0 {
+		db = dbs[0]
 	}
-	db.LogMode(true)
+
+	if db == nil {
+		db, err = gorm.Open(dbt, uri)
+		if err != nil {
+			log.Fatal(err)
+		}
+		db.LogMode(true)
+		defer db.Close()
+	}
 
 	db.DropTableIfExists("users")
 	db.DropTableIfExists("groups")
 	db.DropTableIfExists("user_groups")
 	db.DropTableIfExists("record_groups")
-	db.Close()
+	db.DropTableIfExists("record_users")
 	err = db.Error
 	if err != nil {
 		log.Fatal(err)
@@ -89,8 +102,9 @@ type TestModel struct {
 	SubModels       []SubModel `form:"-" json:"submodels" gorm:"foreignkey:TestModelID;association_foreignkey:TestModelID"`
 	Many2ManyModels []SubModel `form:"-" json:"manymodels" gorm:"many2many:test_subs;"`
 	UC              string     `gorm:"unique"`
+	GroupIDs        []uint     `gorm:"-" json:"-"`
+	UserIDs         []uint     `gorm:"-" json:"-"`
 	OwnerID         uint
-	groupIDs        []uint
 	Perms           string
 	Hash            string
 }
@@ -124,9 +138,14 @@ func (m *TestModel) Owner(o ...uint) uint {
 	return m.OwnerID
 }
 
+func (m *TestModel) Users(u ...uint) []uint {
+	m.UserIDs = append(m.UserIDs, u...)
+	return m.UserIDs
+}
+
 func (m *TestModel) Groups(g ...uint) []uint {
-	m.groupIDs = append(m.groupIDs, g...)
-	return m.groupIDs
+	m.GroupIDs = append(m.GroupIDs, g...)
+	return m.GroupIDs
 }
 
 type SubModel struct {
@@ -134,8 +153,9 @@ type SubModel struct {
 	TestModelID uint
 	Field       string `form:"field"`
 	UC          string `gorm:"unique"`
+	GroupIDs    []uint `gorm:"-" json:"-"`
+	UserIDs     []uint `gorm:"-" json:"-"`
 	OwnerID     uint
-	groupIDs    []uint
 	Perms       string
 	Hash        string
 }
@@ -164,8 +184,13 @@ func (m *SubModel) Owner(o ...uint) uint {
 }
 
 func (m *SubModel) Groups(g ...uint) []uint {
-	m.groupIDs = append(m.groupIDs, g...)
-	return m.groupIDs
+	m.GroupIDs = append(m.GroupIDs, g...)
+	return m.GroupIDs
+}
+
+func (m *SubModel) Users(u ...uint) []uint {
+	m.UserIDs = append(m.UserIDs, u...)
+	return m.UserIDs
 }
 
 type WeakModel struct {

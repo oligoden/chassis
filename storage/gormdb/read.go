@@ -6,7 +6,6 @@ import (
 	"math/rand"
 
 	"github.com/jinzhu/gorm"
-
 	"github.com/oligoden/chassis/storage"
 )
 
@@ -110,13 +109,13 @@ func (db readDB) readAuthorization(t string) (string, string, []interface{}) {
 		conditions += fmt.Sprintf(" OR %s.perms LIKE ?", t)
 		selectors = append(selectors, "%:%:%r%:%")
 
-		joins += fmt.Sprintf("left join groups on groups.owner = %s.owner_id", t)
 		joins += fmt.Sprintf(" left join record_groups on record_groups.record_id = %s.hash", t)
-		conditions += fmt.Sprintf(" OR (%s.perms LIKE ? AND (record_groups.group_id IN (?) OR groups.id IN (?)))", t)
-		selectors = append(selectors, "%:%r%:%:%", db.groups, db.groups)
+		conditions += fmt.Sprintf(" OR (%s.perms LIKE ? AND record_groups.group_id IN (?))", t)
+		selectors = append(selectors, "%:%r%:%:%", db.groups)
 
-		// conditions += fmt.Sprintf(" OR (%s.perms LIKE ? AND owner_id = ?)", t)
-		// selectors = append(selectors, "%r%:%:%:%", db.user)
+		joins += fmt.Sprintf(" left join record_users on record_users.record_id = %s.hash", t)
+		conditions += fmt.Sprintf(" OR (%s.perms LIKE ? AND record_users.user_id = ?)", t)
+		selectors = append(selectors, "%r%:%:%:%", db.user)
 
 		conditions += fmt.Sprintf(" OR %s.owner_id = ?", t)
 		selectors = append(selectors, db.user)
