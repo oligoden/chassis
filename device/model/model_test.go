@@ -76,7 +76,7 @@ func TestBindUserNoUserError(t *testing.T) {
 		Request: httptest.NewRequest(http.MethodPost, "/", nil),
 	}
 
-	m.Bind()
+	m.BindUser()
 	exp := `strconv.Atoi: parsing "": invalid syntax`
 	got := m.Error().Error()
 	if got != exp {
@@ -92,7 +92,7 @@ func TestBindUserNotUserIntError(t *testing.T) {
 		Request: req,
 	}
 
-	m.Bind()
+	m.BindUser()
 	exp := `strconv.Atoi: parsing "a": invalid syntax`
 	got := m.Error().Error()
 	if got != exp {
@@ -109,7 +109,7 @@ func TestBindNotGroupIntError(t *testing.T) {
 		Request: req,
 	}
 
-	m.Bind()
+	m.BindUser()
 	exp := `strconv.Atoi: parsing "a": invalid syntax`
 	got := m.Error().Error()
 	if got != exp {
@@ -120,8 +120,6 @@ func TestBindNotGroupIntError(t *testing.T) {
 func TestBindNoDataError(t *testing.T) {
 	m := &Model{}
 	req := httptest.NewRequest(http.MethodPost, "/", nil)
-	req.Header.Set("X_Session_User", "1")
-	req.Header.Set("X_User_Groups", "1")
 	m.Default = model.Default{
 		Request: req,
 	}

@@ -131,6 +131,7 @@ func NewModel(r *http.Request) *Model {
 	m := &Model{}
 	m.Default = model.Default{}
 	m.Request = r
+	m.BindUser()
 	m.NewData = func() data.Operator { return NewTestModel() }
 	m.Data(NewTestModel())
 	return m

@@ -19,8 +19,9 @@ type Operator interface {
 
 type Default struct {
 	UC       string `gorm:"unique" json:"uc" form:"uc"`
+	GroupIDs []uint `gorm:"-" json:"-"`
+	UserIDs  []uint `gorm:"-" json:"-"`
 	OwnerID  uint   `json:"-"`
-	groupIDs []uint
 	Perms    string `json:"-"`
 	Hash     string `json:"-"`
 }
@@ -62,9 +63,14 @@ func (m *Default) Owner(o ...uint) uint {
 	return m.OwnerID
 }
 
-func (m *Default) Groups(gs ...uint) []uint {
-	m.groupIDs = append(m.groupIDs, gs...)
-	return m.groupIDs
+func (m *Default) Groups(g ...uint) []uint {
+	m.GroupIDs = append(m.GroupIDs, g...)
+	return m.GroupIDs
+}
+
+func (m *Default) Users(u ...uint) []uint {
+	m.UserIDs = append(m.UserIDs, u...)
+	return m.UserIDs
 }
 
 func (x *Default) Hasher() error {

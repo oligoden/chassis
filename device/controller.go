@@ -32,17 +32,19 @@ func (d Default) Read() http.Handler {
 	})
 }
 
-// func (d Default) Update() func(w http.ResponseWriter, r *http.Request) error {
-// 	return func(w http.ResponseWriter, r *http.Request) error {
-// 		d.Bind(r)
-// 		m := d.NewModel(w, r)
+func (d Default) Update() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		m := d.NewModel(r)
+		m.Bind()
+		v := d.NewView(w)
+		dbRead := d.Store.ReadDB(m.User())
 
-// 		dbRead := d.Store.ReadDB(d.User())
-// 		m.Read(dbRead)
-// 		m.Bind()
-// 		db := dbRead.ReaderToUpdater()
-// 		m.Update(db)
-// 		dbRead.Close()
-// 		return m.Response()
-// 	}
-// }
+		m.Read(dbRead)
+		m.Bind()
+		db := dbRead.ReaderToUpdater()
+		m.Update(db)
+		dbRead.Close()
+
+		v.JSON(m)
+	})
+}

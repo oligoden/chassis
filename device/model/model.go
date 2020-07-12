@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -17,7 +18,7 @@ type Operator interface {
 	Manage(storage.DBManager, string)
 	Create(storage.DBCreater)
 	Read(storage.DBReader)
-	// Update(storage.DBUpdater)
+	Update(storage.DBUpdater)
 	// Append(string, storage.DBReader)
 	Communicator
 	DataSelector
@@ -48,13 +49,13 @@ func (d Default) User() (uint, []uint) {
 	return d.user, d.groups
 }
 
-func (m *Default) Bind() {
+func (m *Default) BindUser() {
 	if m.Error() != nil {
 		return
 	}
 
 	if m.Request == nil {
-		m.Error("request not set")
+		log.Println("request not set")
 		return
 	}
 
@@ -76,13 +77,24 @@ func (m *Default) Bind() {
 			m.groups = append(m.groups, uint(group))
 		}
 	}
+}
+
+func (m *Default) Bind() {
+	if m.Error() != nil {
+		return
+	}
+
+	if m.Request == nil {
+		m.Error("request not set")
+		return
+	}
 
 	if m.data == nil {
 		m.Error("no data set")
 		return
 	}
 
-	err = m.bind()
+	err := m.bind()
 	if err != nil {
 		m.Error(err)
 		return
@@ -196,6 +208,33 @@ func (m *Default) Read(db storage.DBReader) {
 	}
 
 	m.data.Read(db)
+	err = db.Error()
+	if err != nil {
+		m.Error(err)
+		return
+	}
+
+	err = m.data.Complete()
+	if err != nil {
+		m.Error(err)
+		return
+	}
+
+	m.Hasher()
+}
+
+func (m *Default) Update(db storage.DBUpdater) {
+	if m.Error() != nil {
+		return
+	}
+
+	err := m.data.Prepare()
+	if err != nil {
+		m.Error(err)
+		return
+	}
+
+	db.Save(m.data)
 	err = db.Error()
 	if err != nil {
 		m.Error(err)
