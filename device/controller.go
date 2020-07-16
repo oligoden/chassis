@@ -35,11 +35,10 @@ func (d Default) Read() http.Handler {
 func (d Default) Update() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		m := d.NewModel(r)
-		m.Bind()
 		v := d.NewView(w)
 		dbRead := d.Store.ReadDB(m.User())
 
-		m.Read(dbRead)
+		m.Read(dbRead, "with-update")
 		m.Bind()
 		db := dbRead.ReaderToUpdater()
 		m.Update(db)

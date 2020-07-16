@@ -17,7 +17,7 @@ import (
 type Operator interface {
 	Manage(storage.DBManager, string)
 	Create(storage.DBCreater)
-	Read(storage.DBReader)
+	Read(storage.DBReader, ...string)
 	Update(storage.DBUpdater)
 	// Append(string, storage.DBReader)
 	Communicator
@@ -196,7 +196,7 @@ func (m *Default) Create(db storage.DBCreater) {
 	m.Hasher()
 }
 
-func (m *Default) Read(db storage.DBReader) {
+func (m *Default) Read(db storage.DBReader, params ...string) {
 	if m.Error() != nil {
 		return
 	}
@@ -207,7 +207,7 @@ func (m *Default) Read(db storage.DBReader) {
 		return
 	}
 
-	m.data.Read(db)
+	m.data.Read(db, params...)
 	err = db.Error()
 	if err != nil {
 		m.Error(err)

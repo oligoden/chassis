@@ -11,7 +11,7 @@ import (
 type Operator interface {
 	Prepare() error
 	Complete() error
-	Read(storage.DBReader) error
+	Read(storage.DBReader, ...string) error
 	Hasher() error
 	TableName() string
 	storage.Authenticator
@@ -30,7 +30,7 @@ func (m Default) Prepare() error {
 	return nil
 }
 
-func (m Default) Read(db storage.DBReader) error {
+func (m Default) Read(db storage.DBReader, params ...string) error {
 	return nil
 }
 

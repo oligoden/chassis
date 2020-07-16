@@ -80,7 +80,7 @@ func TestRead(t *testing.T) {
 	}
 	db.LogMode(true)
 
-	cleanDBUserTables()
+	cleanDBUserTables(db)
 	setupDBTable(&TestModel{}, db)
 
 	x := &TestModel{Field: "a"}
@@ -105,6 +105,48 @@ func TestRead(t *testing.T) {
 		t.Errorf(`expected "%d", got "%d"`, http.StatusOK, w.Code)
 	}
 	exp := `"ID":1,"Field":"a"`
+	got := w.Body.String()
+	if !strings.Contains(got, exp) {
+		t.Errorf(`expected substring "%s", got "%s"`, exp, got)
+	}
+	t.Error()
+}
+
+func TestUpdate(t *testing.T) {
+	db, err := gorm.Open(dbt, uri)
+	if err != nil {
+		t.Error(err)
+	}
+	db.LogMode(true)
+
+	cleanDBUserTables(db)
+	setupDBTable(&TestModel{}, db)
+
+	x := &TestModel{Field: "a"}
+	x.Perms = ":::u"
+	db.Create(x)
+	db.Close()
+	err = db.Error
+	if err != nil {
+		t.Error(err)
+	}
+
+	f := make(url.Values)
+	f.Set("field", "test")
+	r := httptest.NewRequest(http.MethodPut, "/", strings.NewReader(f.Encode()))
+	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	r.Header.Set("X_Session_User", `1`)
+	w := httptest.NewRecorder()
+
+	s := gormdb.New(dbt, uri)
+	d := NewDevice(s)
+	d.Manage("migrate")
+	d.Update().ServeHTTP(w, r)
+
+	if w.Code != http.StatusOK {
+		t.Errorf(`expected "%d", got "%d"`, http.StatusOK, w.Code)
+	}
+	exp := `"ID":1,"Field":"test"`
 	got := w.Body.String()
 	if !strings.Contains(got, exp) {
 		t.Errorf(`expected substring "%s", got "%s"`, exp, got)
@@ -167,8 +209,8 @@ func (TestModel) TableName() string {
 	return "testmodels"
 }
 
-func (x *TestModel) Read(db storage.DBReader) error {
-	db.First(x)
+func (x *TestModel) Read(db storage.DBReader, params ...string) error {
+	db.First(x, params...)
 	err := db.Error()
 	if err != nil {
 		return err
@@ -176,18 +218,28 @@ func (x *TestModel) Read(db storage.DBReader) error {
 	return nil
 }
 
-func cleanDBUserTables() {
-	db, err := gorm.Open(dbt, uri)
-	if err != nil {
-		log.Fatal(err)
+func cleanDBUserTables(dbs ...*gorm.DB) {
+	var db *gorm.DB
+	var err error
+
+	if len(dbs) > 0 {
+		db = dbs[0]
 	}
-	db.LogMode(true)
+
+	if db == nil {
+		db, err = gorm.Open(dbt, uri)
+		if err != nil {
+			log.Fatal(err)
+		}
+		db.LogMode(true)
+		defer db.Close()
+	}
 
 	db.DropTableIfExists("users")
 	db.DropTableIfExists("groups")
 	db.DropTableIfExists("user_groups")
 	db.DropTableIfExists("record_groups")
-	db.Close()
+	db.DropTableIfExists("record_users")
 	err = db.Error
 	if err != nil {
 		log.Fatal(err)

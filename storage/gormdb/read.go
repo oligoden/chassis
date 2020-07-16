@@ -55,33 +55,40 @@ type namer interface {
 	TableName() string
 }
 
-func (db *readDB) First(m interface{}, n ...string) {
-	if r, ok := db.read(m, n...); ok {
+func (db *readDB) First(m interface{}, params ...string) {
+	if r, ok := db.read(m, params...); ok {
 		r.First(m)
 	}
 }
 
-func (db *readDB) Last(m interface{}, n ...string) {
-	if r, ok := db.read(m, n...); ok {
+func (db *readDB) Last(m interface{}, params ...string) {
+	if r, ok := db.read(m, params...); ok {
 		r.Last(m)
 	}
 }
 
-func (db *readDB) Find(m interface{}, n ...string) {
-	if r, ok := db.read(m, n...); ok {
+func (db *readDB) Find(m interface{}, params ...string) {
+	if r, ok := db.read(m, params...); ok {
 		r.Find(m)
 	}
 }
 
-func (db *readDB) read(m interface{}, n ...string) (*gorm.DB, bool) {
+func (db *readDB) read(m interface{}, params ...string) (*gorm.DB, bool) {
 	if db.err != nil {
 		return nil, false
 	}
 
+	authParams := []string{}
 	tableName := ""
-	if len(n) > 0 {
-		tableName = n[0]
-	} else {
+	for _, param := range params {
+		if param == "with-update" {
+			authParams = append(authParams, param)
+		} else {
+			tableName = param
+		}
+	}
+
+	if tableName == "" {
 		mNamer, assertable := m.(namer)
 		if !assertable {
 			db.err = errors.New("model is not assertable as an table namer")
@@ -93,29 +100,42 @@ func (db *readDB) read(m interface{}, n ...string) (*gorm.DB, bool) {
 	x := db.orm
 	db.orm = db.orm.New()
 
-	joins, conditions, selectors := db.readAuthorization(tableName)
+	joins, conditions, selectors := db.readAuthorization(tableName, params...)
 	if joins != "" {
 		x = x.Joins(joins)
 	}
 	return x.Where(conditions, selectors...), true
 }
 
-func (db readDB) readAuthorization(t string) (string, string, []interface{}) {
+func (db readDB) readAuthorization(t string, params ...string) (string, string, []interface{}) {
+	perm := "r"
+
+	for _, param := range params {
+		if param == "with-update" {
+			perm = "u"
+		}
+	}
+
+	permsZ := fmt.Sprintf("%%:%%:%%:%%%s%%", perm)
+	permsA := fmt.Sprintf("%%:%%:%%%s%%:%%", perm)
+	permsG := fmt.Sprintf("%%:%%%s%%:%%:%%", perm)
+	permsU := fmt.Sprintf("%%%s%%:%%:%%:%%", perm)
+
 	joins := ""
 	conditions := fmt.Sprintf("%s.perms LIKE ?", t)
-	selectors := []interface{}{"%:%:%:%r%"}
+	selectors := []interface{}{permsZ}
 
 	if db.user != 0 {
 		conditions += fmt.Sprintf(" OR %s.perms LIKE ?", t)
-		selectors = append(selectors, "%:%:%r%:%")
+		selectors = append(selectors, permsA)
 
 		joins += fmt.Sprintf(" left join record_groups on record_groups.record_id = %s.hash", t)
 		conditions += fmt.Sprintf(" OR (%s.perms LIKE ? AND record_groups.group_id IN (?))", t)
-		selectors = append(selectors, "%:%r%:%:%", db.groups)
+		selectors = append(selectors, permsG, db.groups)
 
 		joins += fmt.Sprintf(" left join record_users on record_users.record_id = %s.hash", t)
 		conditions += fmt.Sprintf(" OR (%s.perms LIKE ? AND record_users.user_id = ?)", t)
-		selectors = append(selectors, "%r%:%:%:%", db.user)
+		selectors = append(selectors, permsU, db.user)
 
 		conditions += fmt.Sprintf(" OR %s.owner_id = ?", t)
 		selectors = append(selectors, db.user)

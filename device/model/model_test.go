@@ -194,8 +194,8 @@ func (TestModel) TableName() string {
 	return "testmodels"
 }
 
-func (x *TestModel) Read(db storage.DBReader) error {
-	db.First(x)
+func (x *TestModel) Read(db storage.DBReader, params ...string) error {
+	db.First(x, params...)
 	err := db.Error()
 	if err != nil {
 		return err
