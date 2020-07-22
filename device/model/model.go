@@ -172,7 +172,6 @@ func (m *Default) Create(db storage.DBCreater) {
 		m.Error(err)
 		return
 	}
-	fmt.Printf("created record %+v\n", m.data)
 
 	err = m.data.Hasher()
 	if err != nil {
@@ -187,7 +186,6 @@ func (m *Default) Create(db storage.DBCreater) {
 		m.Error(err)
 		return
 	}
-	fmt.Printf("updated record %+v\n", m.data)
 
 	err = m.data.Complete()
 	if err != nil {
