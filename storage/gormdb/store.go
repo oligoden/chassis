@@ -73,7 +73,7 @@ func (s Store) Error() error {
 type User struct {
 	ID         uint      `gorm:"primary_key" form:"id"`
 	TS         time.Time `sql:"DEFAULT:CURRENT_TIMESTAMP"`
-	Username   string    `gorm:"unique;not null" json:"username"`
+	Username   string    `gorm:"not null" json:"username"`
 	Password   string    `gorm:"-" json:"password"`
 	Salt       string    `json:"salt"`
 	UserGroups []Group   `gorm:"many2many:user_groups"`
