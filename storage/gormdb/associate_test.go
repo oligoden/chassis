@@ -10,20 +10,20 @@ import (
 )
 
 func TestAssociateAppendWithError(t *testing.T) {
-	cleanDBUserTables()
-	setupDBTable(&TestModel{})
-	setupDBTable(&SubModel{})
-
 	db, err := gorm.Open(dbt, uri)
 	if err != nil {
 		t.Error(err)
 	}
 	db.LogMode(true)
 
+	cleanDBUserTables(db)
+	setupDBTable(&TestModel{}, db)
+	setupDBTable(&SubModel{}, db)
+
 	m := &TestModel{Field: "a", Perms: ":::u"}
 	db.Create(m)
 
-	// simulate error
+	// simulate error with incorrect connection
 	storage := gormdb.New("", "")
 	dbAssociate := storage.AssociateDB(0, []uint{})
 
@@ -37,10 +37,7 @@ func TestAssociateAppendWithError(t *testing.T) {
 
 	m = &TestModel{}
 	db.Preload("SubModels").First(m)
-
-	if err := db.Close(); err != nil {
-		t.Error(err)
-	}
+	db.Close()
 
 	exp := 0
 	got := len(m.SubModels)
@@ -50,15 +47,15 @@ func TestAssociateAppendWithError(t *testing.T) {
 }
 
 func TestAssociateAppendCreateAuthFailure(t *testing.T) {
-	cleanDBUserTables()
-	setupDBTable(&TestModel{})
-	setupDBTable(&SubModel{})
-
 	db, err := gorm.Open(dbt, uri)
 	if err != nil {
 		t.Error(err)
 	}
 	db.LogMode(true)
+
+	cleanDBUserTables(db)
+	setupDBTable(&TestModel{}, db)
+	setupDBTable(&SubModel{}, db)
 
 	m := &TestModel{Field: "a", Perms: ":::u"}
 	db.Create(m)
@@ -80,10 +77,7 @@ func TestAssociateAppendCreateAuthFailure(t *testing.T) {
 
 	m = &TestModel{}
 	db.Preload("SubModels").First(m)
-
-	if err := db.Close(); err != nil {
-		t.Error(err)
-	}
+	db.Close()
 
 	expInt := 0
 	gotInt := len(m.SubModels)
@@ -93,15 +87,15 @@ func TestAssociateAppendCreateAuthFailure(t *testing.T) {
 }
 
 func TestAssociateAppendCreateAuthError(t *testing.T) {
-	cleanDBUserTables()
-	setupDBTable(&TestModel{})
-	setupDBTable(&SubModel{})
-
 	db, err := gorm.Open(dbt, uri)
 	if err != nil {
 		t.Error(err)
 	}
 	db.LogMode(true)
+
+	cleanDBUserTables(db)
+	setupDBTable(&TestModel{}, db)
+	setupDBTable(&SubModel{}, db)
 
 	m := &TestModel{Field: "a", Perms: ":::u"}
 	db.Create(m)
@@ -123,10 +117,7 @@ func TestAssociateAppendCreateAuthError(t *testing.T) {
 
 	m = &TestModel{}
 	db.Preload("SubModels").First(m)
-
-	if err := db.Close(); err != nil {
-		t.Error(err)
-	}
+	db.Close()
 
 	expInt := 0
 	gotInt := len(m.SubModels)
@@ -136,16 +127,15 @@ func TestAssociateAppendCreateAuthError(t *testing.T) {
 }
 
 func TestAssociateAppendCreate(t *testing.T) {
-	cleanDBUserTables()
-
 	db, err := gorm.Open(dbt, uri)
 	if err != nil {
 		t.Error(err)
 	}
 	db.LogMode(true)
-	db.DropTableIfExists("test_subs")
-	setupDBTable(&TestModel{})
-	setupDBTable(&SubModel{})
+
+	cleanDBUserTables(db)
+	setupDBTable(&TestModel{}, db)
+	setupDBTable(&SubModel{}, db)
 
 	m := &TestModel{Field: "a", Perms: ":::u"}
 	db.Create(m)
@@ -163,10 +153,7 @@ func TestAssociateAppendCreate(t *testing.T) {
 
 	m = &TestModel{}
 	db.Preload("SubModels").First(m)
-
-	if err := db.Close(); err != nil {
-		t.Error(err)
-	}
+	db.Close()
 
 	expInt := 1
 	gotInt := len(m.SubModels)
@@ -176,18 +163,19 @@ func TestAssociateAppendCreate(t *testing.T) {
 }
 
 func TestAssociateUniqueCodeGeneration(t *testing.T) {
-	cleanDBUserTables()
-	setupDBTable(&TestModel{})
-	setupDBTable(&SubModel{})
-
 	db, err := gorm.Open(dbt, uri)
 	if err != nil {
 		t.Error(err)
 	}
 	db.LogMode(true)
 
+	cleanDBUserTables(db)
+	setupDBTable(&TestModel{}, db)
+	setupDBTable(&SubModel{}, db)
+
 	m := &TestModel{UC: "abc", Field: "a", Perms: ":::u"}
 	db.Create(m)
+	db.Close()
 
 	storage := gormdb.New(dbt, uri)
 	storage.UniqueCodeFunc(chassis.RandNumberString)

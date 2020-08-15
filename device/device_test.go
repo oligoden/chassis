@@ -109,7 +109,6 @@ func TestRead(t *testing.T) {
 	if !strings.Contains(got, exp) {
 		t.Errorf(`expected substring "%s", got "%s"`, exp, got)
 	}
-	t.Error()
 }
 
 func TestUpdate(t *testing.T) {

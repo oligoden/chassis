@@ -4,8 +4,8 @@ type Storer interface {
 	ManageDB() DBManager
 	CreateDB(uint, []uint) DBCreater
 	ReadDB(uint, []uint) DBReader
-	// UpdateDB(uint, []uint) DBUpdater
-	// AssociationDB(uint, []uint) DBAssociater
+	UpdateDB(uint, []uint) DBUpdater
+	AssociationDB(uint, []uint) DBAssociator
 	UniqueCodeLength(...uint) uint
 	Error() error
 }
