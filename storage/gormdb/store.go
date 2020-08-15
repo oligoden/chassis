@@ -106,10 +106,11 @@ type RecordGroup struct {
 }
 
 type RecordUser struct {
-	ID       uint      `gorm:"primary_key"`
-	TS       time.Time `sql:"DEFAULT:CURRENT_TIMESTAMP"`
-	RecordID string
-	UserID   uint
-	Owner    uint
-	Perms    string
+	ID          uint      `gorm:"primary_key"`
+	TS          time.Time `sql:"DEFAULT:CURRENT_TIMESTAMP"`
+	Description string
+	RecordID    string
+	UserID      uint
+	Owner       uint
+	Perms       string
 }
