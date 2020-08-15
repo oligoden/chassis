@@ -26,61 +26,62 @@ type Default struct {
 	Hash     string `json:"-"`
 }
 
-func (m Default) Prepare() error {
+func (e Default) Prepare() error {
 	return nil
 }
 
-func (m Default) Read(db storage.DBReader, params ...string) error {
+func (e Default) Read(db storage.DBReader, params ...string) error {
+	db.First(e, params...)
 	return nil
 }
 
-func (m Default) Complete() error {
+func (e Default) Complete() error {
 	return nil
 }
 
-func (m *Default) TableName() string {
+func (e *Default) TableName() string {
 	return "models"
 }
 
-func (m *Default) UniqueCode(uc ...string) string {
+func (e *Default) UniqueCode(uc ...string) string {
 	if len(uc) > 0 {
-		m.UC = uc[0]
+		e.UC = uc[0]
 	}
-	return m.UC
+	return e.UC
 }
 
-func (m *Default) Permissions(p ...string) string {
+func (e *Default) Permissions(p ...string) string {
 	if len(p) > 0 {
-		m.Perms = p[0]
+		e.Perms = p[0]
 	}
-	return m.Perms
+	return e.Perms
 }
 
-func (m *Default) Owner(o ...uint) uint {
+func (e *Default) Owner(o ...uint) uint {
 	if len(o) > 0 {
-		m.OwnerID = o[0]
+		e.OwnerID = o[0]
 	}
-	return m.OwnerID
+	return e.OwnerID
 }
 
-func (m *Default) Groups(g ...uint) []uint {
-	m.GroupIDs = append(m.GroupIDs, g...)
-	return m.GroupIDs
+func (e *Default) Groups(g ...uint) []uint {
+	e.GroupIDs = append(e.GroupIDs, g...)
+	return e.GroupIDs
 }
 
-func (m *Default) Users(u ...uint) []uint {
-	m.UserIDs = append(m.UserIDs, u...)
-	return m.UserIDs
+func (e *Default) Users(u ...uint) []uint {
+	e.UserIDs = append(e.UserIDs, u...)
+	return e.UserIDs
 }
 
-func (x *Default) Hasher() error {
-	json, err := json.Marshal(x)
+func (e *Default) Hasher() error {
+	json, err := json.Marshal(e)
 	if err != nil {
 		return err
 	}
 	h := sha1.New()
 	h.Write(json)
-	x.Hash = fmt.Sprintf("%x", h.Sum(nil))
+	e.Hash = fmt.Sprintf("%x", h.Sum(nil))
 
 	return nil
 }
