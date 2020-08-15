@@ -78,6 +78,7 @@ type User struct {
 	TS         time.Time `sql:"DEFAULT:CURRENT_TIMESTAMP"`
 	Username   string    `gorm:"not null" json:"username"`
 	Password   string    `gorm:"-" json:"password"`
+	PassHash   string    `json:"-"`
 	Salt       string    `json:"salt"`
 	UserGroups []Group   `gorm:"many2many:user_groups"`
 	GroupIDs   []uint    `gorm:"-" json:"-"`
