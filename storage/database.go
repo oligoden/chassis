@@ -5,7 +5,7 @@ type Storer interface {
 	CreateDB(uint, []uint) DBCreater
 	ReadDB(uint, []uint) DBReader
 	UpdateDB(uint, []uint) DBUpdater
-	AssociationDB(uint, []uint) DBAssociator
+	AssociateDB(uint, []uint) DBAssociator
 	UniqueCodeLength(...uint) uint
 	Error() error
 }
