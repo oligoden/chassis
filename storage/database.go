@@ -44,6 +44,7 @@ type DBUpdater interface {
 
 type dbAssociator interface {
 	Append(string, Authenticator, Authenticator)
+	Delete(string, Authenticator, Authenticator)
 	// Clear(Authenticator, string)
 }
 type DBAssociator interface {
