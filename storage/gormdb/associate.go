@@ -74,6 +74,16 @@ func (db *associateDB) Append(f string, m, a storage.Authenticator) {
 	db.orm.Model(m).Association(f).Append(a)
 }
 
+func (db *associateDB) Delete(f string, m, a storage.Authenticator) {
+	if db.err != nil {
+		return
+	}
+
+	m.Owner(db.user)
+
+	db.orm.Model(m).Association(f).Delete(a)
+}
+
 func (db *associateDB) retryAssociate(f string, m, a storage.Authenticator) error {
 	for i := 0; i < 3; i++ {
 		fmt.Println("attempt", i)
