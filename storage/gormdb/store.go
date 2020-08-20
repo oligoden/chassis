@@ -95,7 +95,7 @@ func (e User) Prepare() error {
 	return nil
 }
 
-func (e User) Read(db storage.DBReader, params ...string) error {
+func (e *User) Read(db storage.DBReader, params ...string) error {
 	db.First(e, params...)
 	return nil
 }
