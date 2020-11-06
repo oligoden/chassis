@@ -48,7 +48,7 @@ func (db *associateDB) Append(f string, m, a storage.Authenticator) {
 		return
 	}
 
-	m.Owner(db.user)
+	a.Owner(db.user)
 
 	if auth, err := Authorize(a, "c", db.user, db.groups); !auth {
 		if err != nil {

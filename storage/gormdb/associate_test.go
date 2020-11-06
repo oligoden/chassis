@@ -141,7 +141,7 @@ func TestAssociateAppendCreate(t *testing.T) {
 	db.Create(m)
 
 	storage := gormdb.New(dbt, uri)
-	dbAssociate := storage.AssociateDB(0, []uint{})
+	dbAssociate := storage.AssociateDB(1, []uint{})
 	mSub := &SubModel{Perms: ":::cr"}
 	dbAssociate.Append("SubModels", m, mSub)
 	mSub = &SubModel{Perms: ":::cr"}
@@ -155,10 +155,16 @@ func TestAssociateAppendCreate(t *testing.T) {
 	db.Preload("SubModels").First(m)
 	db.Close()
 
-	expInt := 1
-	gotInt := len(m.SubModels)
-	if gotInt != expInt {
-		t.Errorf(`expected "%d", got "%d"`, expInt, gotInt)
+	exp := "1"
+	got := fmt.Sprint(len(m.SubModels))
+	if got != exp {
+		t.Fatalf(`expected "%s", got "%s"`, exp, got)
+	}
+
+	exp = "1"
+	got = fmt.Sprint(m.SubModels[0].OwnerID)
+	if got != exp {
+		t.Errorf(`expected "%s", got "%s"`, exp, got)
 	}
 }
 
