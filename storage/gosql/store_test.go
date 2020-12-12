@@ -115,12 +115,16 @@ type TestData struct {
 	field         string
 	SubData       []SubData `gosql:"-"`
 	Many2ManyData []SubData `gosql:"-"`
-	UC            string    `gosql:"unique"`
-	GroupIDs      []uint    `gosql:"-"`
-	UserIDs       []uint    `gosql:"-"`
-	OwnerID       uint
-	Perms         string
-	Hash          string
+	Default
+}
+
+type Default struct {
+	UC       string `gorm:"unique" json:"uc" form:"uc"`
+	GroupIDs []uint `gosql:"-" json:"-"`
+	UserIDs  []uint `gosql:"-" json:"-"`
+	OwnerID  uint   `json:"-"`
+	Perms    string `json:"-"`
+	Hash     string `json:"-"`
 }
 
 func (TestData) TableName() string {
@@ -157,6 +161,13 @@ func (e *TestData) Groups(g ...uint) []uint {
 	return e.GroupIDs
 }
 
+func (e *TestData) IDValue(id ...uint) uint {
+	if len(id) > 0 {
+		e.ID = id[0]
+	}
+	return e.ID
+}
+
 func (e *TestData) UniqueCode(uc ...string) string {
 	if len(uc) > 0 {
 		e.UC = uc[0]
@@ -184,6 +195,10 @@ func (e TestDataMap) Users(u ...uint) []uint {
 
 func (e TestDataMap) Groups(g ...uint) []uint {
 	return []uint{}
+}
+
+func (TestDataMap) IDValue(...uint) uint {
+	return 0
 }
 
 func (e TestDataMap) UniqueCode(uc ...string) string {

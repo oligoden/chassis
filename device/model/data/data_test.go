@@ -7,29 +7,22 @@ import (
 )
 
 func TestPrepare(t *testing.T) {
-	x := data.Default{}
-	if x.Prepare() != nil {
-		t.Error("expected nil")
-	}
-}
-
-func TestRead(t *testing.T) {
-	x := data.Default{}
-	if x.Read(nil) != nil {
+	e := data.Default{}
+	if e.Prepare() != nil {
 		t.Error("expected nil")
 	}
 }
 
 func TestComplete(t *testing.T) {
-	x := data.Default{}
-	if x.Complete() != nil {
+	e := data.Default{}
+	if e.Complete() != nil {
 		t.Error("expected nil")
 	}
 }
 
 func TestTableName(t *testing.T) {
-	x := data.Default{}
-	got := x.TableName()
+	e := data.Default{}
+	got := e.TableName()
 	exp := `models`
 	if got != exp {
 		t.Errorf(`expected '%s', got '%s'`, exp, got)
@@ -37,21 +30,21 @@ func TestTableName(t *testing.T) {
 }
 
 func TestUniqueCode(t *testing.T) {
-	x := data.Default{}
+	e := data.Default{}
 
-	got := x.UniqueCode()
+	got := e.UniqueCode()
 	exp := ``
 	if got != exp {
 		t.Errorf(`expected '%s', got '%s'`, exp, got)
 	}
 
-	got = x.UniqueCode("abc")
+	got = e.UniqueCode("abc")
 	exp = `abc`
 	if got != exp {
 		t.Errorf(`expected '%s', got '%s'`, exp, got)
 	}
 
-	got = x.UniqueCode()
+	got = e.UniqueCode()
 	exp = `abc`
 	if got != exp {
 		t.Errorf(`expected '%s', got '%s'`, exp, got)
@@ -59,21 +52,21 @@ func TestUniqueCode(t *testing.T) {
 }
 
 func TestPermissions(t *testing.T) {
-	x := data.Default{}
+	e := data.Default{}
 
-	got := x.Permissions()
+	got := e.Permissions()
 	exp := ``
 	if got != exp {
 		t.Errorf(`expected '%s', got '%s'`, exp, got)
 	}
 
-	got = x.Permissions(":::")
+	got = e.Permissions(":::")
 	exp = `:::`
 	if got != exp {
 		t.Errorf(`expected '%s', got '%s'`, exp, got)
 	}
 
-	got = x.Permissions()
+	got = e.Permissions()
 	exp = `:::`
 	if got != exp {
 		t.Errorf(`expected '%s', got '%s'`, exp, got)
@@ -81,21 +74,21 @@ func TestPermissions(t *testing.T) {
 }
 
 func TestOwner(t *testing.T) {
-	x := data.Default{}
+	e := data.Default{}
 
-	got := x.Owner()
+	got := e.Owner()
 	exp := uint(0)
 	if got != exp {
 		t.Errorf(`expected '%d', got '%d'`, exp, got)
 	}
 
-	got = x.Owner(1)
+	got = e.Owner(1)
 	exp = 1
 	if got != exp {
 		t.Errorf(`expected '%d', got '%d'`, exp, got)
 	}
 
-	got = x.Owner()
+	got = e.Owner()
 	exp = 1
 	if got != exp {
 		t.Errorf(`expected '%d', got '%d'`, exp, got)
@@ -103,21 +96,21 @@ func TestOwner(t *testing.T) {
 }
 
 func TestGroups(t *testing.T) {
-	x := data.Default{}
+	e := data.Default{}
 
-	got := len(x.Groups())
+	got := len(e.Groups())
 	exp := len([]uint{})
 	if got != exp {
 		t.Errorf(`expected '%d', got '%d'`, exp, got)
 	}
 
-	got = len(x.Groups(1))
+	got = len(e.Groups(1))
 	exp = len([]uint{1})
 	if got != exp {
 		t.Errorf(`expected '%d', got '%d'`, exp, got)
 	}
 
-	got = len(x.Groups(2, 3))
+	got = len(e.Groups(2, 3))
 	exp = len([]uint{1, 2, 3})
 	if got != exp {
 		t.Errorf(`expected '%d', got '%d'`, exp, got)
@@ -125,20 +118,20 @@ func TestGroups(t *testing.T) {
 }
 
 func TestHash(t *testing.T) {
-	x := data.Default{}
+	e := data.Default{}
 
-	got := x.Hash
+	got := e.Hash
 	exp := ``
 	if got != exp {
 		t.Errorf(`expected '%s', got '%s'`, exp, got)
 	}
 
-	err := x.Hasher()
+	err := e.Hasher()
 	if err != nil {
 		t.Error(err)
 	}
 
-	got = x.Hash
+	got = e.Hash
 	exp = `a50f26ed4478d16faec97103708fa99883adafcc`
 	if got != exp {
 		t.Errorf(`expected '%s', got '%s'`, exp, got)

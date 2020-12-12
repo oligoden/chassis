@@ -20,7 +20,7 @@ func TestAssociateAppendWithError(t *testing.T) {
 	setupDBTable(&TestModel{}, db)
 	setupDBTable(&SubModel{}, db)
 
-	m := &TestModel{Field: "a", Perms: ":::u"}
+	m := &TestModel{Field: "a", Perms: ":::"}
 	db.Create(m)
 
 	// simulate error with incorrect connection
@@ -57,7 +57,7 @@ func TestAssociateAppendCreateAuthFailure(t *testing.T) {
 	setupDBTable(&TestModel{}, db)
 	setupDBTable(&SubModel{}, db)
 
-	m := &TestModel{Field: "a", Perms: ":::u"}
+	m := &TestModel{Field: "a", Perms: ":::"}
 	db.Create(m)
 
 	storage := gormdb.New(dbt, uri)
@@ -97,7 +97,7 @@ func TestAssociateAppendCreateAuthError(t *testing.T) {
 	setupDBTable(&TestModel{}, db)
 	setupDBTable(&SubModel{}, db)
 
-	m := &TestModel{Field: "a", Perms: ":::u"}
+	m := &TestModel{Field: "a", Perms: ":::"}
 	db.Create(m)
 
 	storage := gormdb.New(dbt, uri)
@@ -137,15 +137,15 @@ func TestAssociateAppendCreate(t *testing.T) {
 	setupDBTable(&TestModel{}, db)
 	setupDBTable(&SubModel{}, db)
 
-	m := &TestModel{Field: "a", Perms: ":::u"}
+	m := &TestModel{Field: "a", Perms: ":::"}
 	db.Create(m)
 
 	storage := gormdb.New(dbt, uri)
 	dbAssociate := storage.AssociateDB(1, []uint{})
-	mSub := &SubModel{Perms: ":::cr"}
+	mSub := &SubModel{Perms: ":::c"}
 	dbAssociate.Append("SubModels", m, mSub)
-	mSub = &SubModel{Perms: ":::cr"}
-	dbAssociate.Append("Many2ManyModels", m, mSub)
+	// mSub = &SubModel{Perms: ":::c"}
+	// dbAssociate.Append("Many2ManyModels", m, mSub)
 	dbAssociate.Close()
 	if dbAssociate.Error() != nil {
 		t.Error(dbAssociate.Error())
@@ -166,6 +166,8 @@ func TestAssociateAppendCreate(t *testing.T) {
 	if got != exp {
 		t.Errorf(`expected "%s", got "%s"`, exp, got)
 	}
+
+	t.Error()
 }
 
 func TestAssociateUniqueCodeGeneration(t *testing.T) {
@@ -179,7 +181,7 @@ func TestAssociateUniqueCodeGeneration(t *testing.T) {
 	setupDBTable(&TestModel{}, db)
 	setupDBTable(&SubModel{}, db)
 
-	m := &TestModel{UC: "abc", Field: "a", Perms: ":::u"}
+	m := &TestModel{UC: "abc", Field: "a", Perms: ":::"}
 	db.Create(m)
 	db.Close()
 
@@ -191,7 +193,7 @@ func TestAssociateUniqueCodeGeneration(t *testing.T) {
 	var mSub *SubModel
 	for i := 0; i < 15; i++ {
 		fmt.Println("\nstep", i)
-		mSub = &SubModel{Perms: ":::cr"}
+		mSub = &SubModel{Perms: ":::c"}
 		dbAssociate.Append("SubModels", m, mSub)
 	}
 	dbAssociate.Close()

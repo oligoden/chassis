@@ -1,13 +1,37 @@
 package storage
 
-type Storer interface {
-	ManageDB() DBManager
-	CreateDB(uint, []uint) DBCreater
-	ReadDB(uint, []uint) DBReader
-	UpdateDB(uint, []uint) DBUpdater
-	AssociateDB(uint, []uint) DBAssociator
-	UniqueCodeLength(...uint) uint
-	Error() error
+type Crudder interface {
+	// Where(WhereSetter)
+	Create(Operator)
+	Read(Operator)
+	Update(Operator)
+	AddModifiers(...Modifier)
+	Err(...error) error
+}
+
+type Modifier interface {
+	Compile() (string, []interface{})
+}
+
+// type Storer interface {
+// 	Connect(Identificator) DoCloser
+// 	ManageDB() DBManager
+// 	CreateDB(uint, []uint) DBCreater
+// 	ReadDB(uint, []uint) DBReader
+// 	UpdateDB(uint, []uint) DBUpdater
+// 	AssociateDB(uint, []uint) DBAssociator
+// 	UniqueCodeLength(...uint) uint
+// 	Error() error
+// }
+
+type Identificator interface {
+	User() (uint, []uint)
+}
+
+type DoCloser interface {
+	Do(string, interface{}, ...string) DoCloser
+	Close() error
+	Err() error
 }
 
 type DBCreater interface {
@@ -65,9 +89,19 @@ type dbManager interface {
 }
 
 type Authenticator interface {
+	IDValue(...uint) uint
 	UniqueCode(...string) string
 	Permissions(...string) string
 	Owner(...uint) uint
 	Groups(...uint) []uint
 	Users(...uint) []uint
+}
+
+type TableNamer interface {
+	TableName() string
+}
+
+type Operator interface {
+	Authenticator
+	TableNamer
 }

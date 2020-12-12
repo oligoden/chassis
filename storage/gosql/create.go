@@ -13,25 +13,35 @@ import (
 )
 
 func (c *Connection) GenInsert(e storage.TableNamer) {
-	// tablename := inflection.Plural(m.TableName())
-	// tablename = strings.ToLower(tablename)
-
 	q1 := ""
 	q2 := ""
+
+	err, vs := reflectStruct(e, &q1, &q2)
+	if err != nil {
+		c.Err(err)
+	}
+
+	c.query = fmt.Sprintf("INSERT INTO %s(%s) VALUES(%s)", e.TableName(), q1, q2)
+	c.values = vs
+}
+
+func reflectStruct(e interface{}, q1, q2 *string) (error, []interface{}) {
+	values := []interface{}{}
+	sep := ""
+	if len(*q1) > 0 {
+		sep = ", "
+	}
 
 	t := reflect.TypeOf(e).Elem()
 	v := reflect.ValueOf(e).Elem()
 
 	if t.Kind() != reflect.Struct {
-		c.store.err = fmt.Errorf("not a struct")
-		return
+		return fmt.Errorf("not a struct"), []interface{}{}
 	}
 
-	c.values = []interface{}{}
-	sep := ""
 	for i := 0; i < t.NumField(); i++ {
-		if i > 0 {
-			sep = ", "
+		if t.Field(i).Name == "ID" {
+			continue
 		}
 
 		ft := t.Field(i)
@@ -47,32 +57,27 @@ func (c *Connection) GenInsert(e storage.TableNamer) {
 			continue
 		}
 
-		c.values = append(c.values, fv.Interface())
+		if ft.Type.Kind() == reflect.Struct {
+			err, vs := reflectStruct(fv.Addr().Interface(), q1, q2)
+			if err != nil {
+				return err, []interface{}{}
+			}
+			values = append(values, vs...)
+			continue
+		}
 
-		q1 = q1 + sep + ToSnakeCase(ft.Name)
-		q2 = q2 + sep + "?"
+		values = append(values, fv.Interface())
 
-		// fmt.Printf("%d. %v (%v, %v), tag: '%v'\n", i+1, ft.Name, ft.Type.Name(), ft.Type.Kind(), ft.Tag.Get("form"))
-
-		// if ft.Type.Name() == "RecordDefault" {
-		// 	err := m.structBind(fv.Addr().Interface())
-		// 	if err != nil {
-		// 		return err
-		// 	}
-		// }
-
-		// if tag, got := ft.Tag.Lookup("form"); got {
-		// 	if val := m.Request.FormValue(tag); val != "" {
-		// 		setType(ft.Type.Kind(), val, fv)
-		// 	}
-		// }
+		*q1 = *q1 + sep + ToSnakeCase(ft.Name)
+		*q2 = *q2 + sep + "?"
+		sep = ", "
 	}
 
-	c.query = fmt.Sprintf("INSERT INTO %s(%s) VALUES(%s)", e.TableName(), q1, q2)
+	return nil, values
 }
 
-func (c *Connection) Create(e storage.Storer) {
-	if c.store.err != nil {
+func (c *Connection) Create(e storage.Operator) {
+	if c.err != nil {
 		return
 	}
 
@@ -80,16 +85,16 @@ func (c *Connection) Create(e storage.Storer) {
 
 	if auth, err := Authorize(e, "c", c.user, c.groups); !auth {
 		if err != nil {
-			c.store.err = err
+			c.err = err
 			return
 		}
-		c.store.err = errors.New("create authorization failed")
+		c.err = errors.New("create authorization failed")
 		return
 	}
 
 	db, err := sql.Open(c.store.dbt, c.store.uri)
 	if err != nil {
-		c.store.err = fmt.Errorf("opening db connection, %w", err)
+		c.err = fmt.Errorf("opening db connection, %w", err)
 		return
 	}
 	defer db.Close()
@@ -101,44 +106,56 @@ func (c *Connection) Create(e storage.Storer) {
 	e.UniqueCode(c.store.UniqueCodeFunc()(c.store.UniqueCodeLength()))
 	c.GenInsert(e)
 
-	_, err = c.db.Exec(c.query, c.values...)
+	if c.logger != nil {
+		c.logger.Log("")
+	}
+
+	rs, err := c.db.Exec(c.query, c.values...)
 	if err != nil {
 		if isDuplicateUC(err) {
-			c.store.err = c.retryCreate(e)
+			rs, err = c.retryCreate(e)
+			if err != nil {
+				c.err = err
+				return
+			}
 		} else {
-			c.store.err = err
+			c.err = err
+			return
 		}
 	}
+
+	id, err := rs.LastInsertId()
+	if err != nil {
+		c.err = err
+		return
+	}
+	e.IDValue(uint(id))
 }
 
 func isDuplicateUC(err error) bool {
 	return strings.Contains(err.Error(), "Error 1062: Duplicate entry") && strings.Contains(err.Error(), "for key 'uc'")
 }
 
-func (c *Connection) retryCreate(e storage.Storer) error {
+func (c *Connection) retryCreate(e storage.Operator) (sql.Result, error) {
 	for i := 0; i < 3; i++ {
 		e.UniqueCode(c.store.UniqueCodeFunc()(c.store.UniqueCodeLength()))
 		c.GenInsert(e)
 
-		_, err := c.db.Exec(c.query, c.values...)
+		r, err := c.db.Exec(c.query, c.values...)
 		if err != nil {
-			if !isDuplicateUC(err) {
-				return c.retryCreate(e)
+			if isDuplicateUC(err) {
+				continue
 			}
-		} else {
-			return nil
 		}
+		return r, err
 	}
 
 	c.store.uniqueCodeLength++
 	e.UniqueCode(c.store.UniqueCodeFunc()(c.store.uniqueCodeLength))
 	c.GenInsert(e)
 
-	_, err := c.db.Exec(c.query, c.values...)
-	if err != nil {
-		return err
-	}
-	return nil
+	r, err := c.db.Exec(c.query, c.values...)
+	return r, err
 }
 
 var matchFirstCap = regexp.MustCompile("(.)([A-Z][a-z]+)")

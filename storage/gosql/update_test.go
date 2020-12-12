@@ -9,31 +9,25 @@ import (
 )
 
 func TestGenUpdate(t *testing.T) {
-	eExisting := &TestData{
-		ID:      1,
-		Field:   "a",
-		Perms:   ":::",
-		OwnerID: 1,
+	e := &TestData{
+		ID:    1,
+		Field: "b",
 	}
-	eIncoming := &TestData{
-		ID:      1,
-		Field:   "b",
-		Perms:   ":::",
-		OwnerID: 1,
-	}
+	e.Perms = ":::"
+	e.OwnerID = 1
+	e.Hash = "abc"
 
-	s := gosql.New(dbt, uri)
-	c := s.Connect(1, []uint{})
-	c.GenUpdate(eIncoming, eExisting)
+	c := gosql.NewConnection(1, []uint{})
+	c.GenUpdate(e)
 	q, vs := c.Query()
 
-	exp := "UPDATE testdata SET field = ? WHERE id = ?"
+	exp := "UPDATE testdata SET field = ?, hash = ? WHERE id = ?"
 	got := q
 	if exp != got {
 		t.Errorf(`expected "%s", got "%s"`, exp, got)
 	}
 
-	exp = "[b 1]"
+	exp = "[b abc 1]"
 	got = fmt.Sprintf("%v", vs)
 	if exp != got {
 		t.Errorf(`expected "%s", got "%s"`, exp, got)
@@ -67,24 +61,21 @@ func TestUpdate(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	eIncoming := &TestData{
-		ID:      1,
-		Field:   "c",
-		Perms:   ":::",
-		OwnerID: 1,
-	}
-
-	eExisting := &TestData{}
+	e := &TestData{}
 
 	s := gosql.New(dbt, uri)
 	c := s.Connect(1, []uint{})
 	w := gosql.NewWhere("uc = ?", "yy")
-	c.Where(w)
-	c.Read(eExisting)
-	fmt.Println(eExisting)
-	c.Update(eIncoming, eExisting)
-	if s.Err() != nil {
-		t.Error(s.Err())
+	c.AddModifiers(w)
+	c.Read(e)
+	if c.Err() != nil {
+		t.Error(c.Err())
+	}
+
+	e.Field = "c"
+	c.Update(e)
+	if c.Err() != nil {
+		t.Error(c.Err())
 	}
 
 	var field string

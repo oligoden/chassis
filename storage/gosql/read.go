@@ -11,10 +11,23 @@ import (
 )
 
 func (c *Connection) GenSelect(e storage.TableNamer) {
-	var q string
+	for _, m := range c.modifiers {
+		q, vs := m.Compile()
+
+		if strings.HasPrefix(q, " WHERE") {
+			q = strings.TrimPrefix(q, " WHERE")
+			w := NewWhere(q, vs...)
+			if c.where == nil {
+				c.where = NewWhereGroup(w)
+			} else {
+				c.where.AndGroup(w)
+			}
+		}
+	}
 
 	c.ReadAuthorization(e.TableName())
 
+	var q string
 	if c.join != nil {
 		q = q + c.join.Compile()
 	}
@@ -63,10 +76,14 @@ func (c *Connection) ReadAuthorization(t string, params ...string) {
 		where.Or(fmt.Sprintf("%s.owner_id = ?", t), c.user)
 	}
 
-	c.Where(where)
+	if c.where == nil {
+		c.where = NewWhereGroup(where)
+	} else {
+		c.where.AndGroup(where)
+	}
 }
 
-func (c *Connection) Read(e storage.Storer) {
+func (c *Connection) Read(e storage.Operator) {
 	if c.store.err != nil {
 		return
 	}
@@ -120,34 +137,40 @@ func (c *Connection) Read(e storage.Storer) {
 	for rows.Next() {
 		tRow := t
 
-		if t.Kind() == reflect.Map {
+		if t.Kind() == reflect.Struct {
+			values := dbToStruct(t, v)
+			err = rows.Scan(values...)
+			if err != nil {
+				c.store.err = fmt.Errorf("scanning colunms, %w", err)
+			}
+		} else if t.Kind() == reflect.Map {
 			tRow = t.Elem()
-			v = reflect.New(tRow).Elem()
+			vRow := reflect.New(tRow).Elem()
+			eRow, ok := vRow.Addr().Interface().(storage.Operator)
+			if !ok {
+				c.err = fmt.Errorf("not type storage.Storer")
+				return
+			}
+
+			values := dbToStruct(tRow, vRow)
+			err = rows.Scan(values...)
+			if err != nil {
+				c.store.err = fmt.Errorf("scanning colunms, %w", err)
+			}
+
+			vUC := reflect.ValueOf(eRow.UniqueCode())
+			v.SetMapIndex(vUC, vRow)
 		}
 
-		values, uc := dbToStruct(tRow, v)
-		err = rows.Scan(values...)
-		if err != nil {
-			c.store.err = fmt.Errorf("scanning colunms, %w", err)
-		}
-
-		if t.Kind() == reflect.Map {
-			reflect.ValueOf(e).SetMapIndex(uc, v)
-		}
 	}
 }
 
-func dbToStruct(t reflect.Type, v reflect.Value) ([]interface{}, reflect.Value) {
+func dbToStruct(t reflect.Type, v reflect.Value) []interface{} {
 	values := []interface{}{}
-	var uc reflect.Value
 
 	for i := 0; i < t.NumField(); i++ {
 		ft := t.Field(i)
 		fv := v.Field(i)
-
-		if ft.Name == "UC" {
-			uc = fv
-		}
 
 		// fmt.Printf("%d. %v (%v, %v), tag: '%v' canset %v\n", i+1, ft.Name, ft.Type.Name(), ft.Type.Kind(), ft.Tag.Get("gosql"), fv.CanSet())
 
@@ -161,8 +184,14 @@ func dbToStruct(t reflect.Type, v reflect.Value) ([]interface{}, reflect.Value) 
 			continue
 		}
 
+		if ft.Type.Kind() == reflect.Struct {
+			vs := dbToStruct(ft.Type, fv)
+			values = append(values, vs...)
+			continue
+		}
+
 		values = append(values, fv.Addr().Interface())
 	}
 
-	return values, uc
+	return values
 }

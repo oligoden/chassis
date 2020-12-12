@@ -10,8 +10,7 @@ import (
 
 func TestGenSelect(t *testing.T) {
 	data := TestData{}
-	s := gosql.New(dbt, uri)
-	c := s.Connect(1, []uint{})
+	c := gosql.NewConnection(1, []uint{})
 	c.GenSelect(data)
 	q, vs := c.Query()
 
@@ -57,11 +56,11 @@ func TestReadRecord(t *testing.T) {
 	e := TestData{}
 	c.Read(&e)
 
-	if s.Err() != nil {
-		t.Error(s.Err())
+	if c.Err() != nil {
+		t.Error(c.Err())
 	}
 
-	exp := "{1 a  [] [] xx [] [] 1 ::: xyz}"
+	exp := "{1 a  [] [] {xx [] [] 1 ::: xyz}}"
 	got := fmt.Sprint(e)
 	if exp != got {
 		t.Errorf(`expected "%s", got "%s"`, exp, got)
@@ -100,11 +99,11 @@ func TestReadMap(t *testing.T) {
 	e := TestDataMap{}
 	c.Read(e)
 
-	if s.Err() != nil {
-		t.Error(s.Err())
+	if c.Err() != nil {
+		t.Error(c.Err())
 	}
 
-	exp := "map[xx:{1 a  [] [] xx [] [] 1 ::: xyz} yy:{2 b  [] [] yy [] [] 1 ::: jkl}]"
+	exp := "map[xx:{1 a  [] [] {xx [] [] 1 ::: xyz}} yy:{2 b  [] [] {yy [] [] 1 ::: jkl}}]"
 	got := fmt.Sprint(e)
 	if exp != got {
 		t.Errorf(`expected "%s", got "%s"`, exp, got)

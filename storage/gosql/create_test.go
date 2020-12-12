@@ -10,26 +10,25 @@ import (
 
 func TestGenInsert(t *testing.T) {
 	e := &TestData{
-		ID:      1,
-		Field:   "test",
-		UC:      "uc",
-		OwnerID: 1,
-		Perms:   ":::",
-		Hash:    "hash",
+		ID:    1,
+		Field: "test",
 	}
+	e.UC = "uc"
+	e.OwnerID = 1
+	e.Perms = ":::"
+	e.Hash = "hash"
 
-	s := gosql.New(dbt, uri)
-	c := s.Connect(1, []uint{})
+	c := gosql.NewConnection(1, []uint{})
 	c.GenInsert(e)
 	q, vs := c.Query()
 
-	exp := "INSERT INTO testdata(id, field, uc, owner_id, perms, hash) VALUES(?, ?, ?, ?, ?, ?)"
+	exp := "INSERT INTO testdata(field, uc, owner_id, perms, hash) VALUES(?, ?, ?, ?, ?)"
 	got := q
 	if exp != got {
 		t.Errorf(`expected "%s", got "%s"`, exp, got)
 	}
 
-	exp = "[1 test uc 1 ::: hash]"
+	exp = "[test uc 1 ::: hash]"
 	got = fmt.Sprintf("%v", vs)
 	if exp != got {
 		t.Errorf(`expected "%s", got "%s"`, exp, got)

@@ -15,10 +15,10 @@ import (
 )
 
 type Operator interface {
-	Manage(storage.DBManager, string)
-	Create(storage.DBCreater)
-	Read(storage.DBReader, ...string)
-	Update(storage.DBUpdater)
+	// Manage(storage.DBManager, string)
+	Create()
+	Read()
+	Update()
 	// Append(string, storage.DBReader)
 	Communicator
 	DataSelector
@@ -28,7 +28,7 @@ type Communicator interface {
 	Bind()
 	User() (uint, []uint)
 	Hasher()
-	Error(...interface{}) error
+	Err(...interface{}) error
 }
 
 type DataSelector interface {
@@ -43,14 +43,19 @@ type Default struct {
 	groups  []uint
 	err     []error
 	data    data.Operator
+	Store   Connector
 }
 
-func (d Default) User() (uint, []uint) {
-	return d.user, d.groups
+type Connector interface {
+	Connect(user uint, groups []uint) storage.Crudder
+}
+
+func (m Default) User() (uint, []uint) {
+	return m.user, m.groups
 }
 
 func (m *Default) BindUser() {
-	if m.Error() != nil {
+	if m.Err() != nil {
 		return
 	}
 
@@ -62,7 +67,7 @@ func (m *Default) BindUser() {
 	u := m.Request.Header.Get("X_Session_User")
 	user, err := strconv.Atoi(u)
 	if err != nil {
-		m.Error(err)
+		m.Err(err)
 		return
 	}
 	m.user = uint(user)
@@ -71,7 +76,7 @@ func (m *Default) BindUser() {
 		for _, g := range strings.Split(m.Request.Header.Get("X_User_Groups"), ",") {
 			group, err := strconv.Atoi(g)
 			if err != nil {
-				m.Error(err)
+				m.Err(err)
 				return
 			}
 			m.groups = append(m.groups, uint(group))
@@ -80,23 +85,23 @@ func (m *Default) BindUser() {
 }
 
 func (m *Default) Bind() {
-	if m.Error() != nil {
+	if m.Err() != nil {
 		return
 	}
 
 	if m.Request == nil {
-		m.Error("request not set")
+		m.Err("request not set")
 		return
 	}
 
 	if m.data == nil {
-		m.Error("no data set")
+		m.Err("no data set")
 		return
 	}
 
 	err := m.bind()
 	if err != nil {
-		m.Error(err)
+		m.Err(err)
 		return
 	}
 }
@@ -111,7 +116,7 @@ func (m *Default) Data(d ...data.Operator) data.Operator {
 func (m *Default) Hasher() {
 	json, err := json.Marshal(m.data)
 	if err != nil {
-		m.Error(err)
+		m.Err(err)
 		return
 	}
 	h := sha1.New()
@@ -119,7 +124,7 @@ func (m *Default) Hasher() {
 	m.Hash = fmt.Sprintf("%x", h.Sum(nil))
 }
 
-func (m *Default) Error(es ...interface{}) error {
+func (m *Default) Err(es ...interface{}) error {
 	if m.err == nil {
 		m.err = []error{}
 	}
@@ -142,102 +147,110 @@ func (m *Default) Error(es ...interface{}) error {
 	return m.err[0]
 }
 
-func (m *Default) Manage(db storage.DBManager, action string) {
-	if m.Error() != nil {
-		return
-	}
+// func (m *Default) Manage(db storage.DBManager, action string) {
+// 	if m.Err() != nil {
+// 		return
+// 	}
 
-	db.Manage(m.data, action)
-	err := db.Error()
-	if err != nil {
-		m.Error(err)
-		return
-	}
-}
+// 	db.Manage(m.data, action)
+// 	err := db.Error()
+// 	if err != nil {
+// 		m.Err(err)
+// 		return
+// 	}
+// }
 
-func (m *Default) Create(db storage.DBCreater) {
-	if m.Error() != nil {
+func (m *Default) Create() {
+	if m.Err() != nil {
 		return
 	}
 
 	err := m.data.Prepare()
 	if err != nil {
-		m.Error(err)
+		m.Err(err)
 		return
 	}
 
-	db.Create(m.data)
-	err = db.Error()
+	c := m.Store.Connect(m.User())
+	c.Create(m.data)
+	err = c.Err()
 	if err != nil {
-		m.Error(err)
+		m.Err(err)
 		return
 	}
 
 	err = m.data.Hasher()
 	if err != nil {
-		m.Error(err)
+		m.Err(err)
 		return
 	}
 
-	dbUpdater := db.CreaterToUpdater()
-	dbUpdater.Save(m.data, "with-create")
-	err = dbUpdater.Error()
+	c.Update(m.data)
+	err = c.Err()
 	if err != nil {
-		m.Error(err)
+		m.Err(err)
 		return
 	}
 
 	err = m.data.Complete()
 	if err != nil {
-		m.Error(err)
+		m.Err(err)
 		return
 	}
 
 	m.Hasher()
 }
 
-func (m *Default) Read(db storage.DBReader, params ...string) {
-	if m.Error() != nil {
+func (m *Default) Read() {
+	if m.Err() != nil {
 		return
 	}
 
-	m.data.Read(db, params...)
-	err := db.Error()
+	c := m.Store.Connect(m.User())
+	c.Read(m.data)
+	err := c.Err()
 	if err != nil {
-		m.Error(err)
+		m.Err(err)
 		return
 	}
 
 	err = m.data.Complete()
 	if err != nil {
-		m.Error(err)
+		m.Err(err)
 		return
 	}
 
 	m.Hasher()
 }
 
-func (m *Default) Update(db storage.DBUpdater) {
-	if m.Error() != nil {
+func (m *Default) Update() {
+	if m.Err() != nil {
 		return
 	}
 
 	err := m.data.Prepare()
 	if err != nil {
-		m.Error(err)
+		m.Err(err)
 		return
 	}
 
-	db.Save(m.data)
-	err = db.Error()
+	err = m.data.Hasher()
 	if err != nil {
-		m.Error(err)
+		m.Err(err)
+		return
+	}
+
+	c := m.Store.Connect(m.User())
+	c.Update(m.data)
+	err = c.Err()
+	if err != nil {
+		m.Err(err)
 		return
 	}
 
 	err = m.data.Complete()
 	if err != nil {
-		m.Error(err)
+		m.Err(err)
 		return
 	}
 

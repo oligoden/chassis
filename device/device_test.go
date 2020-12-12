@@ -1,55 +1,28 @@
 package device_test
 
 import (
-	"log"
+	"database/sql"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"strings"
 	"testing"
 
-	"github.com/jinzhu/gorm"
-
 	"github.com/oligoden/chassis/device"
 	"github.com/oligoden/chassis/device/model"
 	"github.com/oligoden/chassis/device/model/data"
 	"github.com/oligoden/chassis/device/view"
-	"github.com/oligoden/chassis/storage"
-	"github.com/oligoden/chassis/storage/gormdb"
+	"github.com/oligoden/chassis/storage/gosql"
 )
 
 const (
 	dbt = "mysql"
-	uri = "chassis:password@tcp(localhost:3316)/chassis?charset=utf8&parseTime=True&loc=Local"
+	uri = "chassis:password@tcp(localhost:3309)/chassis?charset=utf8&parseTime=True&loc=Local"
 )
 
-func TestMigration(t *testing.T) {
-	db, err := gorm.Open(dbt, uri)
-	if err != nil {
-		t.Error(err)
-	}
-	db.LogMode(true)
-	if !db.HasTable("users") {
-		t.Error(`expected table users`)
-	}
-
-	cleanDBUserTables()
-	setupDBTable(&TestModel{}, db)
-
-	store := gormdb.New(dbt, uri)
-	dMatch := NewDevice(store)
-	dMatch.Manage("migrate")
-
-	db.Close()
-	err = db.Error
-	if err != nil {
-		t.Error(err)
-	}
-}
-
 func TestCreate(t *testing.T) {
-	cleanDBUserTables()
-	setupDBTable("testmodels")
+	testCleanup(t)
 
 	f := make(url.Values)
 	f.Set("field", "test")
@@ -58,53 +31,85 @@ func TestCreate(t *testing.T) {
 	r.Header.Set("X_Session_User", `1`)
 	w := httptest.NewRecorder()
 
-	s := gormdb.New(dbt, uri)
+	s := gosql.New(dbt, uri)
+	s.UniqueCodeFunc(func(c uint) string {
+		var a string
+		for i := uint(0); i < c; i++ {
+			a = a + "a"
+		}
+		return a
+	})
+	s.Migrate(NewTestData())
 	d := NewDevice(s)
-	d.Manage("migrate")
 	d.Create().ServeHTTP(w, r)
 
 	if w.Code != http.StatusOK {
 		t.Errorf(`expected "%d", got "%d"`, http.StatusOK, w.Code)
 	}
-	exp := `"ID":1,"Field":"test"`
+	exp := `"field":"test"`
 	got := w.Body.String()
 	if !strings.Contains(got, exp) {
 		t.Errorf(`expected substring "%s", got "%s"`, exp, got)
 	}
-}
 
-func TestRead(t *testing.T) {
-	db, err := gorm.Open(dbt, uri)
+	db, err := sql.Open(dbt, uri)
 	if err != nil {
 		t.Error(err)
 	}
-	db.LogMode(true)
+	defer db.Close()
 
-	cleanDBUserTables(db)
-	setupDBTable(&TestModel{}, db)
-
-	x := &TestModel{Field: "a"}
-	x.Perms = ":::r"
-	db.Create(x)
-	db.Close()
-	err = db.Error
+	var field, hash string
+	err = db.QueryRow("SELECT field,hash from testdata").Scan(&field, &hash)
 	if err != nil {
 		t.Error(err)
+	}
+
+	exp = "test"
+	got = field
+	if exp != got {
+		t.Errorf(`expected "%s", got "%s"`, exp, got)
+	}
+
+	exp = "fc1421a39ae43325360fcc9a4677fd5f02ad63b0"
+	got = hash
+	if exp != got {
+		t.Errorf(`expected "%s", got "%s"`, exp, got)
+	}
+}
+
+func TestRead(t *testing.T) {
+	testCleanup(t)
+	db, err := sql.Open(dbt, uri)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+
+	q := "CREATE TABLE `testdata` (`id` int unsigned AUTO_INCREMENT, `field` varchar(255), `uc` varchar(255) UNIQUE, `owner_id` int unsigned, `perms` varchar(255), `hash` varchar(255), PRIMARY KEY (`id`))"
+	_, err = db.Exec(q)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	q = "INSERT INTO `testdata` (`field`, `uc`, `owner_id`, `perms`, `hash`) VALUES ('a', 'xx', 1, ':::', 'xyz')"
+	_, err = db.Exec(q)
+	if err != nil {
+		t.Fatal(err)
 	}
 
 	r := httptest.NewRequest(http.MethodGet, "/", nil)
 	r.Header.Set("X_Session_User", `1`)
 	w := httptest.NewRecorder()
 
-	s := gormdb.New(dbt, uri)
+	s := gosql.New(dbt, uri)
+	s.Migrate(NewTestData())
 	d := NewDevice(s)
-	d.Manage("migrate")
 	d.Read().ServeHTTP(w, r)
 
 	if w.Code != http.StatusOK {
 		t.Errorf(`expected "%d", got "%d"`, http.StatusOK, w.Code)
 	}
-	exp := `"ID":1,"Field":"a"`
+	exp := `"field":"a"`
 	got := w.Body.String()
 	if !strings.Contains(got, exp) {
 		t.Errorf(`expected substring "%s", got "%s"`, exp, got)
@@ -112,40 +117,41 @@ func TestRead(t *testing.T) {
 }
 
 func TestUpdate(t *testing.T) {
-	db, err := gorm.Open(dbt, uri)
+	testCleanup(t)
+	db, err := sql.Open(dbt, uri)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
-	db.LogMode(true)
+	defer db.Close()
 
-	cleanDBUserTables(db)
-	setupDBTable(&TestModel{}, db)
-
-	x := &TestModel{Field: "a"}
-	x.Perms = ":::u"
-	db.Create(x)
-	db.Close()
-	err = db.Error
+	q := "CREATE TABLE `testdata` (`id` int unsigned AUTO_INCREMENT, `field` varchar(255), `uc` varchar(255) UNIQUE, `owner_id` int unsigned, `perms` varchar(255), `hash` varchar(255), PRIMARY KEY (`id`))"
+	_, err = db.Exec(q)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
+	}
+
+	q = "INSERT INTO `testdata` (`field`, `uc`, `owner_id`, `perms`, `hash`) VALUES ('a', 'xx', 1, ':::', 'xyz')"
+	_, err = db.Exec(q)
+	if err != nil {
+		t.Fatal(err)
 	}
 
 	f := make(url.Values)
-	f.Set("field", "test")
+	f.Set("field", "b")
 	r := httptest.NewRequest(http.MethodPut, "/", strings.NewReader(f.Encode()))
 	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	r.Header.Set("X_Session_User", `1`)
 	w := httptest.NewRecorder()
 
-	s := gormdb.New(dbt, uri)
+	s := gosql.New(dbt, uri)
+	s.Migrate(NewTestData())
 	d := NewDevice(s)
-	d.Manage("migrate")
 	d.Update().ServeHTTP(w, r)
 
 	if w.Code != http.StatusOK {
 		t.Errorf(`expected "%d", got "%d"`, http.StatusOK, w.Code)
 	}
-	exp := `"ID":1,"Field":"test"`
+	exp := `field":"b"`
 	got := w.Body.String()
 	if !strings.Contains(got, exp) {
 		t.Errorf(`expected substring "%s", got "%s"`, exp, got)
@@ -156,10 +162,17 @@ type Device struct {
 	device.Default
 }
 
-func NewDevice(s storage.Storer) *Device {
+func NewDevice(s model.Connector) *Device {
 	d := &Device{}
-	nm := func(r *http.Request) model.Operator { return NewModel(r) }
-	nv := func(w http.ResponseWriter) view.Operator { return NewView(w) }
+
+	nm := func(r *http.Request) model.Operator {
+		return NewModel(r, s)
+	}
+
+	nv := func(w http.ResponseWriter) view.Operator {
+		return NewView(w)
+	}
+
 	d.Default = device.NewDevice(nm, nv, s)
 	return d
 }
@@ -168,13 +181,14 @@ type Model struct {
 	model.Default
 }
 
-func NewModel(r *http.Request) *Model {
+func NewModel(r *http.Request, s model.Connector) *Model {
 	m := &Model{}
 	m.Default = model.Default{}
 	m.Request = r
+	m.Store = s
 	m.BindUser()
-	m.NewData = func() data.Operator { return NewTestModel() }
-	m.Data(NewTestModel())
+	m.NewData = func() data.Operator { return NewTestData() }
+	m.Data(NewTestData())
 	return m
 }
 
@@ -189,83 +203,51 @@ func NewView(w http.ResponseWriter) *View {
 	return v
 }
 
-type TestModel struct {
-	ID    uint   `gorm:"primary_key"`
-	Field string `form:"field"`
-	// Players []Player `form:"-" json:"players" gorm:"foreignkey:MatchUC;association_foreignkey:UC"`
+type TestData struct {
+	ID    uint   `gosql:"primary_key" json:"-"`
+	Field string `form:"field" json:"field"`
 	data.Default
 }
 
-func NewTestModel() *TestModel {
-	r := &TestModel{}
+func NewTestData() *TestData {
+	r := &TestData{}
 	r.Default = data.Default{}
 	r.Perms = "ru:ru:c:"
 	r.Groups(2)
 	return r
 }
 
-func (TestModel) TableName() string {
-	return "testmodels"
+func (TestData) TableName() string {
+	return "testdata"
 }
 
-func (x *TestModel) Read(db storage.DBReader, params ...string) error {
-	db.First(x, params...)
-	err := db.Error()
+func (e *TestData) IDValue(id ...uint) uint {
+	if len(id) > 0 {
+		e.ID = id[0]
+	}
+	return e.ID
+}
+
+func (TestData) Migrate(db *sql.DB) error {
+	q := "CREATE TABLE `testdata` (`id` int unsigned AUTO_INCREMENT, `field` varchar(255), `uc` varchar(255) UNIQUE, `owner_id` int unsigned, `perms` varchar(255), `hash` varchar(255), PRIMARY KEY (`id`))"
+	_, err := db.Exec(q)
 	if err != nil {
-		return err
+		return fmt.Errorf("doing test_data migration: %w", err)
 	}
 	return nil
 }
 
-func cleanDBUserTables(dbs ...*gorm.DB) {
-	var db *gorm.DB
-	var err error
-
-	if len(dbs) > 0 {
-		db = dbs[0]
-	}
-
-	if db == nil {
-		db, err = gorm.Open(dbt, uri)
-		if err != nil {
-			log.Fatal(err)
-		}
-		db.LogMode(true)
-		defer db.Close()
-	}
-
-	db.DropTableIfExists("users")
-	db.DropTableIfExists("groups")
-	db.DropTableIfExists("user_groups")
-	db.DropTableIfExists("record_groups")
-	db.DropTableIfExists("record_users")
-	err = db.Error
+func testCleanup(t *testing.T) {
+	db, err := sql.Open(dbt, uri)
 	if err != nil {
-		log.Fatal(err)
+		t.Error(err)
 	}
-}
+	defer db.Close()
 
-func setupDBTable(d interface{}, dbs ...*gorm.DB) {
-	var db *gorm.DB
-	var err error
+	db.Exec("DROP TABLE users")
+	db.Exec("DROP TABLE groups")
+	db.Exec("DROP TABLE record_groups")
+	db.Exec("DROP TABLE record_users")
 
-	if len(dbs) > 0 {
-		db = dbs[0]
-	}
-
-	if db == nil {
-		db, err = gorm.Open(dbt, uri)
-		if err != nil {
-			log.Fatal(err)
-		}
-		db.LogMode(true)
-		defer db.Close()
-	}
-
-	db.DropTableIfExists(d)
-	db.AutoMigrate(d)
-	err = db.Error
-	if err != nil {
-		log.Fatal(err)
-	}
+	db.Exec("DROP TABLE testdata")
 }

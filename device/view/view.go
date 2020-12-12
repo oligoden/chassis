@@ -20,15 +20,15 @@ type Default struct {
 }
 
 func (v Default) JSON(m model.Operator) {
-	if m.Error() != nil {
-		log.Println(m.Error())
+	if m.Err() != nil {
+		log.Println(m.Err())
 		http.Error(v.Response, "an error occured", http.StatusInternalServerError)
 		return
 	}
 
 	out, err := json.Marshal(m.Data())
 	if err != nil {
-		log.Println(m.Error())
+		log.Println(m.Err())
 		http.Error(v.Response, "an error occured", http.StatusInternalServerError)
 		return
 	}
@@ -37,9 +37,9 @@ func (v Default) JSON(m model.Operator) {
 }
 
 func (v Default) Error(m model.Operator) {
-	if m.Error() != nil {
-		log.Println(m.Error())
-		if strings.Contains(m.Error().Error(), "bad request") {
+	if m.Err() != nil {
+		log.Println(m.Err())
+		if strings.Contains(m.Err().Error(), "bad request") {
 			v.Response.WriteHeader(http.StatusBadRequest)
 		} else {
 			v.Response.WriteHeader(http.StatusInternalServerError)

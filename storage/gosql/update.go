@@ -10,82 +10,96 @@ import (
 	"github.com/oligoden/chassis/storage"
 )
 
-func (c *Connection) GenUpdate(incoming, existing storage.Storer) {
-	tExisting := reflect.TypeOf(existing)
-	vExisting := reflect.ValueOf(existing)
-
-	if tExisting.Kind() == reflect.Ptr {
-		tExisting = tExisting.Elem()
-		if tExisting.Kind() != reflect.Struct {
-			c.store.err = fmt.Errorf("not a struct")
-			return
-		}
-		vExisting = vExisting.Elem()
-	} else {
-		c.store.err = fmt.Errorf("not a pointer")
-		return
-	}
-
-	tIncomming := reflect.TypeOf(incoming)
-	vIncomming := reflect.ValueOf(incoming)
-
-	if tIncomming.Kind() == reflect.Ptr {
-		tIncomming = tIncomming.Elem()
-		if tIncomming.Kind() != reflect.Struct {
-			c.store.err = fmt.Errorf("not a struct")
-			return
-		}
-		vIncomming = vIncomming.Elem()
-	} else {
-		c.store.err = fmt.Errorf("not a pointer")
-		return
-	}
-
+func (c *Connection) GenUpdate(e storage.Operator) {
 	q := ""
-	var idValue reflect.Value
+
+	vs, err := structToUpdateQ(e, &q)
+	if err != nil {
+		c.Err(err)
+	}
+
 	c.values = []interface{}{}
+	c.values = append(c.values, vs...)
+	c.values = append(c.values, e.IDValue())
+	c.query = fmt.Sprintf("UPDATE %s SET %s WHERE id = ?", e.TableName(), q)
+}
+
+func structToUpdateQ(e interface{}, q *string) ([]interface{}, error) {
+	values := []interface{}{}
 	sep := ""
-	for i := 0; i < tExisting.NumField(); i++ {
-		if tExisting.Field(i).Name == "ID" {
-			idValue = vExisting.Field(i)
+	if len(*q) > 0 {
+		sep = ", "
+	}
+
+	t := reflect.TypeOf(e)
+	v := reflect.ValueOf(e)
+
+	if t.Kind() == reflect.Ptr {
+		t = t.Elem()
+		if t.Kind() != reflect.Struct {
+			return []interface{}{}, fmt.Errorf("not a struct")
+		}
+		v = v.Elem()
+	} else if t.Kind() == reflect.Slice {
+	} else if t.Kind() == reflect.Map {
+	} else {
+		return []interface{}{}, fmt.Errorf("not a pointer, map or slice")
+	}
+
+	for i := 0; i < t.NumField(); i++ {
+		if t.Field(i).Name == "ID" {
 			continue
 		}
 
-		if tExisting.Field(i).Name == "UC" {
+		if t.Field(i).Name == "UC" {
 			continue
 		}
 
-		if tExisting.Field(i).Name == "Hash" {
+		if t.Field(i).Name == "OwnerID" {
 			continue
 		}
 
-		if tag, got := tIncomming.Field(i).Tag.Lookup("gosql"); got {
+		if t.Field(i).Name == "Perms" {
+			continue
+		}
+
+		ft := t.Field(i)
+		fv := v.Field(i)
+
+		if tag, got := ft.Tag.Lookup("gosql"); got {
 			if tag == "-" {
 				continue
 			}
 		}
 
-		if tIncomming.Field(i).PkgPath != "" {
+		if ft.PkgPath != "" {
 			continue
 		}
 
-		if !reflect.DeepEqual(vExisting.Field(i).Interface(), vIncomming.Field(i).Interface()) {
-			q = q + sep + ToSnakeCase(tIncomming.Field(i).Name) + " = ?"
-			c.values = append(c.values, vIncomming.Field(i).Interface())
-			sep = ", "
+		if ft.Type.Kind() == reflect.Struct {
+			vs, err := structToUpdateQ(fv.Addr().Interface(), q)
+			if err != nil {
+				return []interface{}{}, err
+			}
+			values = append(values, vs...)
+			continue
 		}
+
+		values = append(values, fv.Interface())
+
+		*q = *q + sep + ToSnakeCase(ft.Name) + " = ?"
+		sep = ", "
 	}
 
-	c.values = append(c.values, idValue.Interface())
-	c.query = fmt.Sprintf("UPDATE %s SET %s WHERE id = ?", existing.TableName(), q)
+	return values, nil
 }
 
-func (c *Connection) Update(eIncoming, eExisting storage.Storer) {
+func (c *Connection) Update(e storage.Operator) {
 	if c.store.err != nil {
 		return
 	}
 
-	if auth, err := Authorize(eExisting, "u", c.user, c.groups); !auth {
+	if auth, err := Authorize(e, "u", c.user, c.groups); !auth {
 		if err != nil {
 			c.store.err = err
 			return
@@ -104,7 +118,7 @@ func (c *Connection) Update(eIncoming, eExisting storage.Storer) {
 	db.SetMaxOpenConns(10)
 	db.SetMaxIdleConns(10)
 
-	c.GenUpdate(eIncoming, eExisting)
+	c.GenUpdate(e)
 	fmt.Println(c.query, c.values)
 
 	_, err = db.Exec(c.query, c.values...)

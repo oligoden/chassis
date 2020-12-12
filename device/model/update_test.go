@@ -4,12 +4,14 @@ import (
 	"database/sql"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
+	"strings"
 	"testing"
 
 	"github.com/oligoden/chassis/storage/gosql"
 )
 
-func TestRead(t *testing.T) {
+func TestUpdate(t *testing.T) {
 	testCleanup(t)
 	db, err := sql.Open(dbt, uri)
 	if err != nil {
@@ -29,7 +31,10 @@ func TestRead(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	f := make(url.Values)
+	f.Set("field", "test")
+	req := httptest.NewRequest(http.MethodPut, "/", strings.NewReader(f.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("X_Session_User", "1")
 
 	s := gosql.New(dbt, uri)
@@ -45,6 +50,30 @@ func TestRead(t *testing.T) {
 	exp := "a"
 	got := e.Field
 	if got != exp {
+		t.Errorf(`expected "%s", got "%s"`, exp, got)
+	}
+
+	m.Bind()
+	m.Update()
+	if m.Err() != nil {
+		t.Error(m.Err())
+	}
+
+	var field, hash string
+	err = db.QueryRow("SELECT field,hash from testdata").Scan(&field, &hash)
+	if err != nil {
+		t.Error(err)
+	}
+
+	exp = "test"
+	got = field
+	if exp != got {
+		t.Errorf(`expected "%s", got "%s"`, exp, got)
+	}
+
+	exp = "8f0a824fa3a483940710071db416dab40a16a6ed"
+	got = hash
+	if exp != got {
 		t.Errorf(`expected "%s", got "%s"`, exp, got)
 	}
 }

@@ -71,6 +71,8 @@ func (db *associateDB) Append(f string, m, a storage.Authenticator) {
 		}
 	}
 
+	fmt.Printf("field %s\nparent %+v\nchild %+v\n", f, m, a)
+
 	db.orm.Model(m).Association(f).Append(a)
 }
 

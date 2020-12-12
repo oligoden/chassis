@@ -11,27 +11,22 @@ import (
 type Operator interface {
 	Prepare() error
 	Complete() error
-	Read(storage.DBReader, ...string) error
+	// Read(storage.DBReader, ...string) error
 	Hasher() error
-	TableName() string
-	storage.Authenticator
+	// TableName() string
+	storage.Operator
 }
 
 type Default struct {
 	UC       string `gorm:"unique" json:"uc" form:"uc"`
-	GroupIDs []uint `gorm:"-" json:"-"`
-	UserIDs  []uint `gorm:"-" json:"-"`
+	GroupIDs []uint `gosql:"-" json:"-"`
+	UserIDs  []uint `gosql:"-" json:"-"`
 	OwnerID  uint   `json:"-"`
 	Perms    string `json:"-"`
 	Hash     string `json:"-"`
 }
 
 func (e Default) Prepare() error {
-	return nil
-}
-
-func (e Default) Read(db storage.DBReader, params ...string) error {
-	db.First(e, params...)
 	return nil
 }
 

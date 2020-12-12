@@ -54,6 +54,10 @@ func New(dbt, uri string) *Store {
 	return s
 }
 
+func (s *Store) Connect(id storage.Identificator) storage.DoCloser {
+	return nil
+}
+
 func (m *Store) UniqueCodeLength(ucl ...uint) uint {
 	if len(ucl) > 0 {
 		m.uniqueCodeLength = ucl[0]

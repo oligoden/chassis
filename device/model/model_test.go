@@ -1,51 +1,49 @@
 package model_test
 
 import (
-	"errors"
-	"log"
+	"database/sql"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
-	"github.com/jinzhu/gorm"
-
 	"github.com/oligoden/chassis/device/model"
 	"github.com/oligoden/chassis/device/model/data"
-	"github.com/oligoden/chassis/storage"
+	"github.com/oligoden/chassis/device/view"
 )
 
 const (
 	dbt = "mysql"
-	uri = "chassis:password@tcp(localhost:3316)/chassis?charset=utf8&parseTime=True&loc=Local"
+	uri = "chassis:password@tcp(localhost:3309)/chassis?charset=utf8&parseTime=True&loc=Local"
 )
 
-func TestData(t *testing.T) {
-	xTestModel := &TestModel{}
-	mTestModel := &Model{}
-	mTestModel.Default = model.Default{}
+func TestDataSetting(t *testing.T) {
+	e := &TestData{}
+	m := &Model{}
+	m.Default = model.Default{}
 
-	if mTestModel.Data() != nil {
+	if m.Data() != nil {
 		t.Errorf(`expected nil`)
 	}
 
-	if mTestModel.Data(xTestModel) == nil {
+	if m.Data(e) == nil {
 		t.Errorf(`expected not nil`)
 	}
 }
 
 func TestHashing(t *testing.T) {
-	xTestModel := &TestModel{}
-	mTestModel := &Model{}
-	mTestModel.Default = model.Default{}
-	mTestModel.Data(xTestModel)
+	e := &TestData{}
+	m := &Model{}
+	m.Default = model.Default{}
+	m.Data(e)
 
-	if mTestModel.Hash != "" {
+	if m.Hash != "" {
 		t.Errorf(`expected empty hash`)
 	}
 
-	mTestModel.Hasher()
+	m.Hasher()
 
-	if mTestModel.Hash == "" {
+	if m.Hash == "" {
 		t.Errorf(`expected non-empty hash`)
 	}
 }
@@ -56,7 +54,7 @@ func TestBindStartError(t *testing.T) {
 
 	m.Bind()
 	exp := "request not set"
-	got := m.Error().Error()
+	got := m.Err().Error()
 	if got != exp {
 		t.Errorf(`expected "%s", got "%s"`, exp, got)
 	}
@@ -64,7 +62,7 @@ func TestBindStartError(t *testing.T) {
 	// calling Bind() with existing error should return immediately
 	m.Bind()
 	exp = "request not set"
-	got = m.Error().Error()
+	got = m.Err().Error()
 	if got != exp {
 		t.Errorf(`expected "%s", got "%s"`, exp, got)
 	}
@@ -78,7 +76,7 @@ func TestBindUserNoUserError(t *testing.T) {
 
 	m.BindUser()
 	exp := `strconv.Atoi: parsing "": invalid syntax`
-	got := m.Error().Error()
+	got := m.Err().Error()
 	if got != exp {
 		t.Errorf(`expected "%s", got "%s"`, exp, got)
 	}
@@ -94,7 +92,7 @@ func TestBindUserNotUserIntError(t *testing.T) {
 
 	m.BindUser()
 	exp := `strconv.Atoi: parsing "a": invalid syntax`
-	got := m.Error().Error()
+	got := m.Err().Error()
 	if got != exp {
 		t.Errorf(`expected "%s", got "%s"`, exp, got)
 	}
@@ -111,7 +109,7 @@ func TestBindNotGroupIntError(t *testing.T) {
 
 	m.BindUser()
 	exp := `strconv.Atoi: parsing "a": invalid syntax`
-	got := m.Error().Error()
+	got := m.Err().Error()
 	if got != exp {
 		t.Errorf(`expected "%s", got "%s"`, exp, got)
 	}
@@ -126,7 +124,7 @@ func TestBindNoDataError(t *testing.T) {
 
 	m.Bind()
 	exp := "no data set"
-	got := m.Error().Error()
+	got := m.Err().Error()
 	if got != exp {
 		t.Errorf(`expected "%s", got "%s"`, exp, got)
 	}
@@ -136,112 +134,73 @@ type Model struct {
 	model.Default
 }
 
-func NewModel(r *http.Request) *Model {
+func NewModel(r *http.Request, s model.Connector) *Model {
 	m := &Model{}
 	m.Default = model.Default{}
 	m.Request = r
-	m.NewData = func() data.Operator { return NewTestModel() }
-	m.Data(NewTestModel())
+	m.Store = s
+	m.BindUser()
+	m.NewData = func() data.Operator { return NewTestData() }
+	m.Data(NewTestData())
 	return m
 }
 
-type prepareErrorData struct {
+type View struct {
+	view.Default
+}
+
+func NewView(w http.ResponseWriter) *View {
+	v := &View{}
+	v.Default = view.Default{}
+	v.Response = w
+	return v
+}
+
+type TestData struct {
+	ID    uint   `gosql:"primary_key" json:"-"`
+	Field string `form:"field" json:"field"`
 	data.Default
 }
 
-func (m prepareErrorData) Prepare() error {
-	return errors.New("error")
-}
-
-type createErrorData struct {
-	data.Default
-}
-
-type hashErrorData struct {
-	data.Default
-}
-
-func (m hashErrorData) Hasher() error {
-	return errors.New("hash test error")
-}
-
-type completeErrorData struct {
-	data.Default
-}
-
-func (m completeErrorData) Complete() error {
-	return errors.New("complete test error")
-}
-
-func NewTestModel() data.Operator {
-	r := &TestModel{}
+func NewTestData() *TestData {
+	r := &TestData{}
 	r.Default = data.Default{}
-	r.Permissions("::c:")
+	r.Perms = "ru:ru:c:c"
+	r.Groups(2)
 	return r
 }
 
-type TestModel struct {
-	ID    uint   `gorm:"primary_key"`
-	Field string `form:"field"`
-	// CaptainUC      string  `json:"-"`
-	// Captain        Player            `json:"kaptain" gorm:"foreignkey:KaptainUC;association_foreignkey:UC"`
-	// Players        []Player          `json:"-" gorm:"foreignkey:MatchUC;association_foreignkey:UC"`
-	// PlayerMap      map[string]Player `json:"players" gorm:"-"`
-	data.Default
+func (TestData) TableName() string {
+	return "testdata"
 }
 
-func (TestModel) TableName() string {
-	return "testmodels"
+func (e *TestData) IDValue(id ...uint) uint {
+	if len(id) > 0 {
+		e.ID = id[0]
+	}
+	return e.ID
 }
 
-func (x *TestModel) Read(db storage.DBReader, params ...string) error {
-	db.First(x, params...)
-	err := db.Error()
+func (TestData) Migrate(db *sql.DB) error {
+	q := "CREATE TABLE `testdata` (`id` int unsigned AUTO_INCREMENT, `field` varchar(255), `uc` varchar(255) UNIQUE, `owner_id` int unsigned, `perms` varchar(255), `hash` varchar(255), PRIMARY KEY (`id`))"
+	_, err := db.Exec(q)
 	if err != nil {
-		return err
+		return fmt.Errorf("doing test_data migration: %w", err)
 	}
 	return nil
 }
 
-func cleanDBUserTables() {
-	db, err := gorm.Open(dbt, uri)
+func testCleanup(t *testing.T) {
+	db, err := sql.Open(dbt, uri)
 	if err != nil {
-		log.Fatal(err)
+		t.Error(err)
 	}
-	db.LogMode(true)
+	defer db.Close()
 
-	db.DropTableIfExists("users")
-	db.DropTableIfExists("groups")
-	db.DropTableIfExists("user_groups")
-	db.DropTableIfExists("record_groups")
-	db.Close()
-	err = db.Error
-	if err != nil {
-		log.Fatal(err)
-	}
-}
+	db.Exec("DROP TABLE users")
+	db.Exec("DROP TABLE groups")
+	db.Exec("DROP TABLE record_groups")
+	db.Exec("DROP TABLE record_users")
 
-func setupDBTable(d interface{}, dbs ...*gorm.DB) {
-	var db *gorm.DB
-	var err error
-
-	if len(dbs) > 0 {
-		db = dbs[0]
-	}
-
-	if db == nil {
-		db, err = gorm.Open(dbt, uri)
-		if err != nil {
-			log.Fatal(err)
-		}
-		db.LogMode(true)
-		defer db.Close()
-	}
-
-	db.DropTableIfExists(d)
-	db.AutoMigrate(d)
-	err = db.Error
-	if err != nil {
-		log.Fatal(err)
-	}
+	db.Exec("DROP TABLE testdata")
 }

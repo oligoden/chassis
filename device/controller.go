@@ -8,12 +8,9 @@ func (d Default) Create() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		m := d.NewModel(r)
 		m.Bind()
+		m.Create()
+
 		v := d.NewView(w)
-		db := d.Store.CreateDB(m.User())
-
-		m.Create(db)
-		db.Close()
-
 		v.JSON(m)
 	})
 }
@@ -21,13 +18,9 @@ func (d Default) Create() http.Handler {
 func (d Default) Read() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		m := d.NewModel(r)
-		m.Bind()
+		m.Read()
+
 		v := d.NewView(w)
-		db := d.Store.ReadDB(m.User())
-
-		m.Read(db)
-		db.Close()
-
 		v.JSON(m)
 	})
 }
@@ -35,15 +28,11 @@ func (d Default) Read() http.Handler {
 func (d Default) Update() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		m := d.NewModel(r)
-		v := d.NewView(w)
-		dbRead := d.Store.ReadDB(m.User())
-
-		m.Read(dbRead, "with-update")
+		m.Read()
 		m.Bind()
-		db := dbRead.ReaderToUpdater()
-		m.Update(db)
-		dbRead.Close()
+		m.Update()
 
+		v := d.NewView(w)
 		v.JSON(m)
 	})
 }
