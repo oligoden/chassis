@@ -16,6 +16,6 @@ func (j *Join) Add(js ...string) {
 	j.joins = append(j.joins, js...)
 }
 
-func (j *Join) Compile() string {
-	return " " + strings.Join(j.joins, " ")
+func (j *Join) Compile() (string, []interface{}) {
+	return " " + strings.Join(j.joins, " "), []interface{}{}
 }

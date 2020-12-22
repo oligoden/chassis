@@ -29,7 +29,8 @@ func (c *Connection) GenSelect(e storage.TableNamer) {
 
 	var q string
 	if c.join != nil {
-		q = q + c.join.Compile()
+		j, _ := c.join.Compile()
+		q = q + j
 	}
 
 	if c.where != nil {
