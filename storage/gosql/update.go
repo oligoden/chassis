@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
 	"reflect"
 	"time"
 
@@ -119,7 +120,7 @@ func (c *Connection) Update(e storage.Operator) {
 	db.SetMaxIdleConns(10)
 
 	c.GenUpdate(e)
-	fmt.Println(c.query, c.values)
+	log.Println(c.query, c.values)
 
 	_, err = db.Exec(c.query, c.values...)
 	if err != nil {

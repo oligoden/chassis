@@ -3,6 +3,7 @@ package gosql
 import (
 	"database/sql"
 	"fmt"
+	"log"
 	"reflect"
 	"strings"
 	"time"
@@ -117,6 +118,7 @@ func (c *Connection) Read(e storage.Operator) {
 	db.SetMaxIdleConns(10)
 
 	c.GenSelect(e)
+	log.Println(c.query, c.values)
 
 	rows, err := db.Query(c.query, c.values...)
 	if err != nil {

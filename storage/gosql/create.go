@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
 	"reflect"
 	"regexp"
 	"strings"
@@ -105,6 +106,7 @@ func (c *Connection) Create(e storage.Operator) {
 
 	e.UniqueCode(c.store.UniqueCodeFunc()(c.store.UniqueCodeLength()))
 	c.GenInsert(e)
+	log.Println(c.query, c.values)
 
 	if c.logger != nil {
 		c.logger.Log("")
