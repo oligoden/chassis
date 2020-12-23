@@ -1,7 +1,9 @@
 package gosql
 
 import (
+	"crypto/sha1"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"math/rand"
 	"time"
@@ -126,80 +128,80 @@ func (s Store) Err() error {
 	return s.err
 }
 
-// type User struct {
-// 	OwnerID    uint      `gorm:"primary_key" json:"-"`
-// 	UC         string    `gorm:"unique" json:"uc" form:"uc"`
-// 	TS         time.Time `sql:"DEFAULT:CURRENT_TIMESTAMP"`
-// 	Username   string    `gorm:"not null" json:"username"`
-// 	Password   string    `gorm:"-" json:"password"`
-// 	PassHash   string    `json:"-"`
-// 	Salt       string    `json:"salt"`
-// 	UserGroups []Group   `gorm:"many2many:user_groups"`
-// 	GroupIDs   []uint    `gorm:"-" json:"-"`
-// 	UserIDs    []uint    `gorm:"-" json:"-"`
-// 	Perms      string    `json:"-"`
-// 	Hash       string    `json:"-"`
-// }
+type User struct {
+	ID       uint      `gosql:"primary_key" json:"-"`
+	UC       string    `gosql:"unique" json:"uc" form:"uc"`
+	TS       time.Time `sql:"DEFAULT:CURRENT_TIMESTAMP"`
+	Username string    `gosql:"not null" json:"username"`
+	Password string    `gosql:"-" json:"password"`
+	PassHash string    `json:"-"`
+	Salt     string    `json:"salt"`
+	// 	UserGroups []Group   `gosql:"many2many:user_groups"`
+	GroupIDs []uint `gosql:"-" json:"-"`
+	UserIDs  []uint `gosql:"-" json:"-"`
+	Perms    string `json:"-"`
+	Hash     string `json:"-"`
+}
 
-// func (User) TableName() string {
-// 	return "users"
-// }
+func (User) TableName() string {
+	return "users"
+}
 
-// func (e User) Prepare() error {
-// 	return nil
-// }
+func (e User) Prepare() error {
+	return nil
+}
 
 // func (e *User) Read(db storage.DBReader, params ...string) error {
 // 	db.First(e, params...)
 // 	return nil
 // }
 
-// func (e User) Complete() error {
-// 	return nil
-// }
+func (e User) Complete() error {
+	return nil
+}
 
-// func (e *User) UniqueCode(uc ...string) string {
-// 	if len(uc) > 0 {
-// 		e.UC = uc[0]
-// 	}
-// 	return e.UC
-// }
+func (e *User) UniqueCode(uc ...string) string {
+	if len(uc) > 0 {
+		e.UC = uc[0]
+	}
+	return e.UC
+}
 
-// func (e *User) Permissions(p ...string) string {
-// 	if len(p) > 0 {
-// 		e.Perms = p[0]
-// 	}
-// 	return e.Perms
-// }
+func (e *User) Permissions(p ...string) string {
+	if len(p) > 0 {
+		e.Perms = p[0]
+	}
+	return e.Perms
+}
 
-// func (e *User) Owner(o ...uint) uint {
-// 	if len(o) > 0 {
-// 		e.OwnerID = o[0]
-// 	}
-// 	return e.OwnerID
-// }
+func (e *User) Owner(o ...uint) uint {
+	if len(o) > 0 {
+		e.ID = o[0]
+	}
+	return e.ID
+}
 
-// func (e *User) Groups(g ...uint) []uint {
-// 	e.GroupIDs = append(e.GroupIDs, g...)
-// 	return e.GroupIDs
-// }
+func (e *User) Groups(g ...uint) []uint {
+	e.GroupIDs = append(e.GroupIDs, g...)
+	return e.GroupIDs
+}
 
-// func (e *User) Users(u ...uint) []uint {
-// 	e.UserIDs = append(e.UserIDs, u...)
-// 	return e.UserIDs
-// }
+func (e *User) Users(u ...uint) []uint {
+	e.UserIDs = append(e.UserIDs, u...)
+	return e.UserIDs
+}
 
-// func (e *User) Hasher() error {
-// 	json, err := json.Marshal(e)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	h := sha1.New()
-// 	h.Write(json)
-// 	e.Hash = fmt.Sprintf("%x", h.Sum(nil))
+func (e *User) Hasher() error {
+	json, err := json.Marshal(e)
+	if err != nil {
+		return err
+	}
+	h := sha1.New()
+	h.Write(json)
+	e.Hash = fmt.Sprintf("%x", h.Sum(nil))
 
-// 	return nil
-// }
+	return nil
+}
 
 // type Group struct {
 // 	ID    uint      `gorm:"primary_key"`
