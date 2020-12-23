@@ -86,7 +86,7 @@ func (c *Connection) ReadAuthorization(t string, params ...string) {
 }
 
 func (c *Connection) Read(e storage.Operator) {
-	if c.store.err != nil {
+	if c.err != nil {
 		return
 	}
 
@@ -95,21 +95,21 @@ func (c *Connection) Read(e storage.Operator) {
 
 	if t.Kind() == reflect.Ptr {
 		t = t.Elem()
-		if t.Kind() != reflect.Struct {
-			c.store.err = fmt.Errorf("not a struct")
+		if t.Kind() != reflect.Struct && t.Kind() != reflect.Slice {
+			c.err = fmt.Errorf("not a struct")
 			return
 		}
 		v = v.Elem()
 	} else if t.Kind() == reflect.Slice {
 	} else if t.Kind() == reflect.Map {
 	} else {
-		c.store.err = fmt.Errorf("not a pointer, map or slice")
+		c.err = fmt.Errorf("not a pointer, map or slice")
 		return
 	}
 
 	db, err := sql.Open(c.store.dbt, c.store.uri)
 	if err != nil {
-		c.store.err = fmt.Errorf("opening db connection, %w", err)
+		c.err = fmt.Errorf("opening db connection, %w", err)
 		return
 	}
 	defer db.Close()
@@ -122,7 +122,7 @@ func (c *Connection) Read(e storage.Operator) {
 
 	rows, err := db.Query(c.query, c.values...)
 	if err != nil {
-		c.store.err = fmt.Errorf("reading from db, %w", err)
+		c.err = fmt.Errorf("reading from db, %w", err)
 		return
 	}
 
@@ -131,7 +131,7 @@ func (c *Connection) Read(e storage.Operator) {
 
 	// cols, err := rows.Columns()
 	// if err != nil {
-	// 	c.store.err = fmt.Errorf("getting row columns, %w", err)
+	// 	c.err = fmt.Errorf("getting row columns, %w", err)
 	// 	return
 	// }
 
@@ -144,7 +144,7 @@ func (c *Connection) Read(e storage.Operator) {
 			values := dbToStruct(t, v)
 			err = rows.Scan(values...)
 			if err != nil {
-				c.store.err = fmt.Errorf("scanning colunms, %w", err)
+				c.err = fmt.Errorf("scanning colunms, %w", err)
 			}
 		} else if t.Kind() == reflect.Map {
 			tRow = t.Elem()
@@ -158,13 +158,22 @@ func (c *Connection) Read(e storage.Operator) {
 			values := dbToStruct(tRow, vRow)
 			err = rows.Scan(values...)
 			if err != nil {
-				c.store.err = fmt.Errorf("scanning colunms, %w", err)
+				c.err = fmt.Errorf("scanning colunms, %w", err)
 			}
 
 			vUC := reflect.ValueOf(eRow.UniqueCode())
 			v.SetMapIndex(vUC, vRow)
-		}
+		} else if t.Kind() == reflect.Slice {
+			tRow = t.Elem()
+			vRow := reflect.New(tRow).Elem()
 
+			values := dbToStruct(tRow, vRow)
+			err = rows.Scan(values...)
+			if err != nil {
+				c.err = fmt.Errorf("scanning colunms, %w", err)
+			}
+			v.Set(reflect.Append(v, vRow))
+		}
 	}
 }
 

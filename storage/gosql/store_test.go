@@ -205,6 +205,36 @@ func (e TestDataMap) UniqueCode(uc ...string) string {
 	return ""
 }
 
+type TestDataSlice []TestData
+
+func (TestDataSlice) TableName() string {
+	return "testdata"
+}
+
+func (e TestDataSlice) Permissions(p ...string) string {
+	return ""
+}
+
+func (e TestDataSlice) Owner(o ...uint) uint {
+	return 0
+}
+
+func (e TestDataSlice) Users(u ...uint) []uint {
+	return []uint{}
+}
+
+func (e TestDataSlice) Groups(g ...uint) []uint {
+	return []uint{}
+}
+
+func (TestDataSlice) IDValue(...uint) uint {
+	return 0
+}
+
+func (e TestDataSlice) UniqueCode(uc ...string) string {
+	return ""
+}
+
 type SubData struct {
 	SubDataID  uint `gorm:"primary_key"`
 	TestDataID uint
