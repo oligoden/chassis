@@ -41,7 +41,7 @@ func TestGenSelectWhere(t *testing.T) {
 	q, vs := c.Query()
 
 	exp := "SELECT testdata.* FROM testdata"
-	exp += " LEFT JOIN test_a on test_a.id = testdata.test_a_id"
+	exp += "  LEFT JOIN test_a on test_a.id = testdata.test_a_id"
 	exp += " LEFT JOIN test_b on test_b.id = test_a.test_b_id"
 	exp += " LEFT JOIN record_groups on record_groups.record_id = testdata.hash"
 	exp += " LEFT JOIN record_users on record_users.record_id = testdata.hash"

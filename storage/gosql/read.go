@@ -14,7 +14,6 @@ import (
 func (c *Connection) GenSelect(e storage.TableNamer) {
 	for _, m := range c.modifiers {
 		q, vs := m.Compile()
-		fmt.Println("mods", q)
 
 		if strings.HasPrefix(q, " WHERE ") {
 			q = strings.TrimPrefix(q, " WHERE ")
@@ -27,8 +26,8 @@ func (c *Connection) GenSelect(e storage.TableNamer) {
 		}
 
 		if strings.HasPrefix(q, " LEFT JOIN ") {
-			q = strings.TrimPrefix(q, " ")
 			if c.join == nil {
+				q = strings.TrimPrefix(q, " ")
 				c.join = NewJoin(q)
 			} else {
 				qc, _ := c.join.Compile()
@@ -43,7 +42,7 @@ func (c *Connection) GenSelect(e storage.TableNamer) {
 	var q string
 	if c.join != nil {
 		j, _ := c.join.Compile()
-		j = strings.TrimPrefix(j, " ")
+		// j = strings.TrimPrefix(j, " ")
 		q = q + j
 	}
 
@@ -75,12 +74,11 @@ func (c *Connection) ReadAuthorization(t string, params ...string) {
 	if c.user != 0 {
 		where.Or(fmt.Sprintf("%s.perms LIKE ?", t), permsA)
 
-		j := fmt.Sprintf(" LEFT JOIN record_groups on record_groups.record_id = %s.hash", t)
 		if c.join == nil {
-			c.join = NewJoin(j)
+			c.join = NewJoin(fmt.Sprintf("LEFT JOIN record_groups on record_groups.record_id = %s.hash", t))
 		} else {
 			jc, _ := c.join.Compile()
-			c.join = NewJoin(jc + j)
+			c.join = NewJoin(jc + fmt.Sprintf(" LEFT JOIN record_groups on record_groups.record_id = %s.hash", t))
 		}
 
 		if len(c.groups) > 0 {
