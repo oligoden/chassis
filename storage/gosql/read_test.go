@@ -30,6 +30,34 @@ func TestGenSelect(t *testing.T) {
 	}
 }
 
+func TestGenSelectWhere(t *testing.T) {
+	data := TestData{}
+	c := gosql.NewConnection(1, []uint{})
+	where := gosql.NewWhere("test = ?", 4)
+	joins := gosql.NewJoin("LEFT JOIN test_a on test_a.id = testdata.test_a_id")
+	joins.Add("LEFT JOIN test_b on test_b.id = test_a.test_b_id")
+	c.AddModifiers(joins, where)
+	c.GenSelect(data)
+	q, vs := c.Query()
+
+	exp := "SELECT testdata.* FROM testdata"
+	exp += " LEFT JOIN test_a on test_a.id = testdata.test_a_id"
+	exp += " LEFT JOIN test_b on test_b.id = test_a.test_b_id"
+	exp += " LEFT JOIN record_groups on record_groups.record_id = testdata.hash"
+	exp += " LEFT JOIN record_users on record_users.record_id = testdata.hash"
+	exp += " WHERE (test = ?) AND (testdata.perms LIKE ? OR testdata.perms LIKE ? OR (testdata.perms LIKE ? AND record_users.user_id = ?) OR testdata.owner_id = ?)"
+	got := q
+	if exp != got {
+		t.Errorf(`expected "%s", got "%s"`, exp, got)
+	}
+
+	exp = "[4 %:%:%:%r% %:%:%r%:% %r%:%:%:% 1 1]"
+	got = fmt.Sprintf("%v", vs)
+	if exp != got {
+		t.Errorf(`expected "%s", got "%s"`, exp, got)
+	}
+}
+
 func TestReadRecord(t *testing.T) {
 	testCleanup(t)
 
@@ -152,47 +180,3 @@ func TestReadSlice(t *testing.T) {
 		t.Errorf(`expected "%s", got "%s"`, exp, got)
 	}
 }
-
-// func TestReadMapWhere(t *testing.T) {
-// 	testCleanup(t)
-
-// 	db, err := sql.Open(dbt, uri)
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
-// 	defer db.Close()
-
-// 	q := "CREATE TABLE `testdata` (`id` int unsigned AUTO_INCREMENT, `field` varchar(255), `uc` varchar(255) UNIQUE, `owner_id` int unsigned, `perms` varchar(255), `hash` varchar(255), PRIMARY KEY (`id`))"
-// 	_, err = db.Exec(q)
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
-
-// 	q = "INSERT INTO `testdata` (`field`, `uc`, `owner_id`, `perms`, `hash`) VALUES ('a', 'xx', 1, ':::', 'xyz')"
-// 	_, err = db.Exec(q)
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
-
-// 	q = "INSERT INTO `testdata` (`field`, `uc`, `owner_id`, `perms`, `hash`) VALUES ('b', 'yy', 1, ':::', 'jfk')"
-// 	_, err = db.Exec(q)
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
-
-// 	s := gosql.New(dbt, uri)
-// 	c := s.Connect(1, []uint{})
-// 	e := TestDataMap{}
-// 	c.Where("id = ?", 0)
-// 	c.Read(e)
-
-// 	if s.Err() != nil {
-// 		t.Error(s.Err())
-// 	}
-
-// 	exp := "map[xx:{1 a  [] [] xx [] [] 1 ::: xyz}]"
-// 	got := fmt.Sprint(e)
-// 	if exp != got {
-// 		t.Errorf(`expected "%s", got "%s"`, exp, got)
-// 	}
-// }
