@@ -10,7 +10,8 @@ type Crudder interface {
 }
 
 type Modifier interface {
-	Compile() (string, []interface{})
+	Compile(...string) (string, []interface{})
+	Order() int
 }
 
 // type Storer interface {

@@ -34,18 +34,19 @@ func TestGenSelectWhere(t *testing.T) {
 	data := TestData{}
 	c := gosql.NewConnection(1, []uint{})
 	where := gosql.NewWhere("test = ?", 4)
-	joins := gosql.NewJoin("LEFT JOIN test_a on test_a.id = testdata.test_a_id")
-	joins.Add("LEFT JOIN test_b on test_b.id = test_a.test_b_id")
-	c.AddModifiers(joins, where)
+	join1 := gosql.NewJoin("LEFT JOIN test_a on test_a.id = testdata.test_a_id")
+	join2 := gosql.NewJoin("LEFT JOIN test_b on test_b.id = test_a.test_b_id")
+	c.AddModifiers(join1, join2, where)
 	c.GenSelect(data)
 	q, vs := c.Query()
 
 	exp := "SELECT testdata.* FROM testdata"
-	exp += "  LEFT JOIN test_a on test_a.id = testdata.test_a_id"
+	exp += " LEFT JOIN test_a on test_a.id = testdata.test_a_id"
 	exp += " LEFT JOIN test_b on test_b.id = test_a.test_b_id"
 	exp += " LEFT JOIN record_groups on record_groups.record_id = testdata.hash"
 	exp += " LEFT JOIN record_users on record_users.record_id = testdata.hash"
-	exp += " WHERE (test = ?) AND (testdata.perms LIKE ? OR testdata.perms LIKE ? OR (testdata.perms LIKE ? AND record_users.user_id = ?) OR testdata.owner_id = ?)"
+	exp += " WHERE test = ?"
+	exp += " AND (testdata.perms LIKE ? OR testdata.perms LIKE ? OR (testdata.perms LIKE ? AND record_users.user_id = ?) OR testdata.owner_id = ?)"
 	got := q
 	if exp != got {
 		t.Errorf(`expected "%s", got "%s"`, exp, got)

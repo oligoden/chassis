@@ -12,47 +12,12 @@ import (
 )
 
 func (c *Connection) GenSelect(e storage.TableNamer) {
-	for _, m := range c.modifiers {
-		q, vs := m.Compile()
-
-		if strings.HasPrefix(q, " WHERE ") {
-			q = strings.TrimPrefix(q, " WHERE ")
-			w := NewWhere(q, vs...)
-			if c.where == nil {
-				c.where = NewWhereGroup(w)
-			} else {
-				c.where.AndGroup(w)
-			}
-		}
-
-		if strings.HasPrefix(q, " LEFT JOIN ") {
-			if c.join == nil {
-				q = strings.TrimPrefix(q, " ")
-				c.join = NewJoin(q)
-			} else {
-				qc, _ := c.join.Compile()
-				qc = strings.TrimPrefix(qc, " ")
-				c.join = NewJoin(qc + q)
-			}
-		}
-	}
-
 	c.ReadAuthorization(e.TableName())
 
-	var q string
-	if c.join != nil {
-		j, _ := c.join.Compile()
-		// j = strings.TrimPrefix(j, " ")
-		q = q + j
-	}
+	q, vs := c.modifiers.Compile()
+	c.values = append(c.values, vs...)
 
-	if c.where != nil {
-		where, vs := c.where.Compile()
-		c.values = append(c.values, vs...)
-		q = q + where
-	}
-
-	c.query = fmt.Sprintf("SELECT %s.* FROM %[1]s%s", e.TableName(), q)
+	c.query = fmt.Sprintf("SELECT %s.* FROM %[1]s %s", e.TableName(), q)
 }
 
 func (c *Connection) ReadAuthorization(t string, params ...string) {
@@ -74,12 +39,7 @@ func (c *Connection) ReadAuthorization(t string, params ...string) {
 	if c.user != 0 {
 		where.Or(fmt.Sprintf("%s.perms LIKE ?", t), permsA)
 
-		if c.join == nil {
-			c.join = NewJoin(fmt.Sprintf("LEFT JOIN record_groups on record_groups.record_id = %s.hash", t))
-		} else {
-			jc, _ := c.join.Compile()
-			c.join = NewJoin(jc + fmt.Sprintf(" LEFT JOIN record_groups on record_groups.record_id = %s.hash", t))
-		}
+		c.modifiers = append(c.modifiers, NewJoin(fmt.Sprintf("LEFT JOIN record_groups on record_groups.record_id = %s.hash", t)))
 
 		if len(c.groups) > 0 {
 			w := NewWhere(fmt.Sprintf("%s.perms LIKE ?", t), permsG)
@@ -88,7 +48,7 @@ func (c *Connection) ReadAuthorization(t string, params ...string) {
 			where.OrGroup(w)
 		}
 
-		c.join.Add(fmt.Sprintf("LEFT JOIN record_users on record_users.record_id = %s.hash", t))
+		c.modifiers = append(c.modifiers, NewJoin(fmt.Sprintf("LEFT JOIN record_users on record_users.record_id = %s.hash", t)))
 		w := NewWhere(fmt.Sprintf("%s.perms LIKE ?", t), permsU)
 		w.And("record_users.user_id = ?", fmt.Sprint(c.user))
 		where.OrGroup(w)
@@ -96,11 +56,7 @@ func (c *Connection) ReadAuthorization(t string, params ...string) {
 		where.Or(fmt.Sprintf("%s.owner_id = ?", t), c.user)
 	}
 
-	if c.where == nil {
-		c.where = NewWhereGroup(where)
-	} else {
-		c.where.AndGroup(where)
-	}
+	c.modifiers = append(c.modifiers, NewWhereGroup(where))
 }
 
 func (c *Connection) Read(e storage.Operator) {

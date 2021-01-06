@@ -47,6 +47,18 @@ func (w *Where) OrGroup(wg *Where) *Where {
 	return w
 }
 
-func (w *Where) Compile() (string, []interface{}) {
-	return " WHERE " + w.condition, w.values
+func (w *Where) Compile(ops ...string) (string, []interface{}) {
+	if len(ops) > 0 {
+		if ops[0] == "first" {
+			return "WHERE " + w.condition, w.values
+		}
+		if ops[0] == "same" {
+			return "AND " + w.condition, w.values
+		}
+	}
+	return w.condition, w.values
+}
+
+func (w *Where) Order() int {
+	return 10
 }

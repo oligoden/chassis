@@ -2,13 +2,15 @@ package gosql
 
 import (
 	"database/sql"
+	"sort"
+	"strings"
 
 	"github.com/oligoden/chassis/storage"
 )
 
 type Connection struct {
 	store     *Store
-	modifiers []storage.Modifier
+	modifiers modifiers
 	join      *Join
 	where     *Where
 	query     string
@@ -56,4 +58,44 @@ type Logger interface {
 
 func (c *Connection) SetLogger(l Logger) {
 	c.logger = l
+}
+
+type modifiers []storage.Modifier
+
+func (ms modifiers) Len() int {
+	return len(ms)
+}
+
+func (ms modifiers) Swap(i, j int) {
+	ms[i], ms[j] = ms[j], ms[i]
+}
+
+func (ms modifiers) Less(i, j int) bool {
+	return ms[i].Order() < ms[j].Order()
+}
+
+func (ms modifiers) Compile() (string, []interface{}) {
+	sort.Sort(ms)
+
+	var qs []string
+	var vsAll []interface{}
+
+	for i, m := range ms {
+		var q string
+		var vs []interface{}
+
+		if i > 0 {
+			if ms[i-1].Order() != m.Order() {
+				q, vs = m.Compile("first")
+			} else {
+				q, vs = m.Compile("same")
+			}
+		} else {
+			q, vs = m.Compile()
+		}
+
+		qs = append(qs, q)
+		vsAll = append(vsAll, vs...)
+	}
+	return strings.Join(qs, " "), vsAll
 }

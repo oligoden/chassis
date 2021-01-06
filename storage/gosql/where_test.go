@@ -9,9 +9,9 @@ import (
 
 func TestWhere(t *testing.T) {
 	w := gosql.NewWhere("a = ?", 1)
-	q, vs := w.Compile()
+	q, vs := w.Compile("first")
 
-	exp := " WHERE a = ?"
+	exp := "WHERE a = ?"
 	got := q
 	if exp != got {
 		t.Errorf(`expected "%s", got "%s"`, exp, got)
@@ -28,9 +28,9 @@ func TestWhereAndOr(t *testing.T) {
 	w := gosql.NewWhere("a = ?", 1)
 	w.And("b > ?", 2)
 	w.Or("c LIKE ?", "abc")
-	q, vs := w.Compile()
+	q, vs := w.Compile("first")
 
-	exp := " WHERE a = ? AND b > ? OR c LIKE ?"
+	exp := "WHERE a = ? AND b > ? OR c LIKE ?"
 	got := q
 	if exp != got {
 		t.Errorf(`expected "%s", got "%s"`, exp, got)
@@ -49,9 +49,9 @@ func TestWhereAndOrGroup(t *testing.T) {
 	w.AndGroup(wg)
 	wg = gosql.NewWhere("c LIKE ?", "abc")
 	w.OrGroup(wg)
-	q, vs := w.Compile()
+	q, vs := w.Compile("first")
 
-	exp := " WHERE a = ? AND (b > ?) OR (c LIKE ?)"
+	exp := "WHERE a = ? AND (b > ?) OR (c LIKE ?)"
 	got := q
 	if exp != got {
 		t.Errorf(`expected "%s", got "%s"`, exp, got)
