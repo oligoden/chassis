@@ -101,6 +101,7 @@ func (c *Connection) Read(e storage.Operator) {
 	}
 
 	c.modifiers = modifiers{}
+	c.values = []interface{}{}
 
 	// cols, err := rows.Columns()
 	// if err != nil {
