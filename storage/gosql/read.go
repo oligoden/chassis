@@ -100,8 +100,7 @@ func (c *Connection) Read(e storage.Operator) {
 		return
 	}
 
-	c.where = nil
-	c.join = nil
+	c.modifiers = modifiers{}
 
 	// cols, err := rows.Columns()
 	// if err != nil {

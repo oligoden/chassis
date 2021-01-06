@@ -11,15 +11,15 @@ import (
 type Connection struct {
 	store     *Store
 	modifiers modifiers
-	join      *Join
-	where     *Where
-	query     string
-	values    []interface{}
-	user      uint
-	groups    []uint
-	db        *sql.DB
-	logger    Logger
-	err       error
+	// join      *Join
+	// where     *Where
+	query  string
+	values []interface{}
+	user   uint
+	groups []uint
+	db     *sql.DB
+	logger Logger
+	err    error
 }
 
 func NewConnection(user uint, groups []uint) *Connection {
