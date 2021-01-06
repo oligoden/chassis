@@ -158,7 +158,7 @@ func dbToStruct(t reflect.Type, v reflect.Value) []interface{} {
 		ft := t.Field(i)
 		fv := v.Field(i)
 
-		// fmt.Printf("%d. %v (%v, %v), tag: '%v' canset %v\n", i+1, ft.Name, ft.Type.Name(), ft.Type.Kind(), ft.Tag.Get("gosql"), fv.CanSet())
+		fmt.Printf("%d. %v (%v, %v), tag: '%v' canset %v\n", i+1, ft.Name, ft.Type.Name(), ft.Type.Kind(), ft.Tag.Get("gosql"), fv.CanSet())
 
 		if tag, got := ft.Tag.Lookup("gosql"); got {
 			if tag == "-" {
