@@ -91,7 +91,7 @@ func (ms modifiers) Compile() (string, []interface{}) {
 				q, vs = m.Compile("same")
 			}
 		} else {
-			q, vs = m.Compile()
+			q, vs = m.Compile("first")
 		}
 
 		qs = append(qs, q)
