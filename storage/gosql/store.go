@@ -40,7 +40,7 @@ func New(dbt, uri string) *Store {
 	s.rs = rand.NewSource(time.Now().UnixNano())
 	s.ucFunc = s.randString
 
-	_, err = db.Exec("CREATE TABLE `users` (`id` int unsigned AUTO_INCREMENT,`uc` varchar(255) UNIQUE,`ts` DATETIME NULL DEFAULT CURRENT_TIMESTAMP,`username` varchar(255) NOT NULL,`pass_hash` varchar(255),`salt` varchar(255),`perms` varchar(255),`hash` varchar(255) , PRIMARY KEY (`owner_id`))")
+	_, err = db.Exec("CREATE TABLE `users` (`id` int unsigned AUTO_INCREMENT,`uc` varchar(255) UNIQUE,`ts` DATETIME NULL DEFAULT CURRENT_TIMESTAMP,`username` varchar(255) NOT NULL,`pass_hash` varchar(255),`salt` varchar(255),`perms` varchar(255),`hash` varchar(255) , PRIMARY KEY (`id`))")
 	if err != nil {
 		s.err = fmt.Errorf("doing new store db migration: %w", err)
 		return s
