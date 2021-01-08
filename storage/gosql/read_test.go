@@ -3,6 +3,7 @@ package gosql_test
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/oligoden/chassis/storage/gosql"
@@ -178,6 +179,42 @@ func TestReadSlice(t *testing.T) {
 	exp := "[{1 a  [] [] {xx [] [] 1 ::: xyz}} {2 b  [] [] {yy [] [] 1 ::: jkl}}]"
 	got := fmt.Sprint(e)
 	if exp != got {
+		t.Errorf(`expected "%s", got "%s"`, exp, got)
+	}
+
+	c.Read(e)
+	if c.Err() == nil {
+		t.Error("expected error")
+	}
+}
+
+func TestReadUser(t *testing.T) {
+	testCleanup(t)
+	s := gosql.New(dbt, uri)
+
+	db, err := sql.Open(dbt, uri)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+
+	q := "INSERT INTO `users` (`uc`, `username`, `perms`, `hash`) VALUES ('c', 'usr', ':::r', 'vbn')"
+	_, err = db.Exec(q)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	c := s.Connect(1, []uint{})
+	e := gosql.UserRecords{}
+	c.Read(&e)
+
+	if c.Err() != nil {
+		t.Error(c.Err())
+	}
+
+	exp := "usr    [] [] :::r vbn}]"
+	got := fmt.Sprint(e)
+	if !strings.Contains(got, exp) {
 		t.Errorf(`expected "%s", got "%s"`, exp, got)
 	}
 }

@@ -40,7 +40,7 @@ func New(dbt, uri string) *Store {
 	s.rs = rand.NewSource(time.Now().UnixNano())
 	s.ucFunc = s.randString
 
-	_, err = db.Exec("CREATE TABLE `users` (`id` int unsigned AUTO_INCREMENT,`uc` varchar(255) UNIQUE,`ts` DATETIME NULL DEFAULT CURRENT_TIMESTAMP,`username` varchar(255) NOT NULL,`pass_hash` varchar(255),`salt` varchar(255),`perms` varchar(255),`hash` varchar(255) , PRIMARY KEY (`id`))")
+	_, err = db.Exec("CREATE TABLE `users` (`owner_id` int unsigned AUTO_INCREMENT,`uc` varchar(255) UNIQUE NOT NULL DEFAULT '',`ts` DATETIME NULL DEFAULT CURRENT_TIMESTAMP,`username` varchar(255) NOT NULL DEFAULT '',`pass_hash` varchar(255) NOT NULL DEFAULT '',`salt` varchar(255) NOT NULL DEFAULT '',`perms` varchar(255),`hash` varchar(255) NOT NULL DEFAULT '', PRIMARY KEY (`owner_id`))")
 	if err != nil {
 		s.err = fmt.Errorf("doing new store db migration: %w", err)
 		return s
@@ -129,7 +129,7 @@ func (s Store) Err() error {
 }
 
 type User struct {
-	ID       uint      `gosql:"primary_key" json:"-"`
+	OwnerID  uint      `gosql:"primary_key" json:"-"`
 	UC       string    `gosql:"unique" json:"uc" form:"uc"`
 	TS       time.Time `sql:"DEFAULT:CURRENT_TIMESTAMP"`
 	Username string    `gosql:"not null" json:"username"`
@@ -176,9 +176,9 @@ func (e *User) Permissions(p ...string) string {
 
 func (e *User) Owner(o ...uint) uint {
 	if len(o) > 0 {
-		e.ID = o[0]
+		e.OwnerID = o[0]
 	}
-	return e.ID
+	return e.OwnerID
 }
 
 func (e *User) Groups(g ...uint) []uint {
@@ -201,6 +201,36 @@ func (e *User) Hasher() error {
 	e.Hash = fmt.Sprintf("%x", h.Sum(nil))
 
 	return nil
+}
+
+type UserRecords []User
+
+func (UserRecords) TableName() string {
+	return "users"
+}
+
+func (e UserRecords) Permissions(p ...string) string {
+	return ""
+}
+
+func (e UserRecords) Owner(o ...uint) uint {
+	return 0
+}
+
+func (e UserRecords) Users(u ...uint) []uint {
+	return []uint{}
+}
+
+func (e UserRecords) Groups(g ...uint) []uint {
+	return []uint{}
+}
+
+func (UserRecords) IDValue(...uint) uint {
+	return 0
+}
+
+func (e UserRecords) UniqueCode(uc ...string) string {
+	return ""
 }
 
 // type Group struct {

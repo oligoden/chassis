@@ -10,7 +10,7 @@ import (
 
 const (
 	dbt = "mysql"
-	uri = "chassis:password@tcp(localhost:3309)/chassis?charset=utf8&parseTime=True&loc=Local"
+	uri = "chassis:password@tcp(localhost:3309)/chassis?charset=utf8&parseTime=True&loc=Local&parseTime=true"
 )
 
 func testCleanup(t *testing.T) {

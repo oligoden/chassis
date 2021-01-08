@@ -74,10 +74,9 @@ func (c *Connection) Read(e storage.Operator) {
 			return
 		}
 		v = v.Elem()
-	} else if t.Kind() == reflect.Slice {
 	} else if t.Kind() == reflect.Map {
 	} else {
-		c.err = fmt.Errorf("not a pointer, map or slice")
+		c.err = fmt.Errorf("not a pointer or map")
 		return
 	}
 
@@ -87,9 +86,9 @@ func (c *Connection) Read(e storage.Operator) {
 		return
 	}
 	defer db.Close()
-	db.SetConnMaxLifetime(10 * time.Second)
-	db.SetMaxOpenConns(10)
-	db.SetMaxIdleConns(10)
+	db.SetConnMaxLifetime(3 * time.Second)
+	db.SetMaxOpenConns(5)
+	db.SetMaxIdleConns(5)
 
 	c.GenSelect(e)
 	log.Println(c.query, c.values)
@@ -158,8 +157,7 @@ func dbToStruct(t reflect.Type, v reflect.Value) []interface{} {
 		ft := t.Field(i)
 		fv := v.Field(i)
 
-		fmt.Printf("%d. %v (%v, %v), tag: '%v' canset %v\n", i+1, ft.Name, ft.Type.Name(), ft.Type.Kind(), ft.Tag.Get("gosql"), fv.CanSet())
-
+		// fmt.Printf("%d. %v (%v, %v), tag: '%v' canset %v\n", i+1, ft.Name, ft.Type.Name(), ft.Type.Kind(), ft.Tag.Get("gosql"), fv.CanSet())
 		if tag, got := ft.Tag.Lookup("gosql"); got {
 			if tag == "-" {
 				continue
@@ -170,7 +168,7 @@ func dbToStruct(t reflect.Type, v reflect.Value) []interface{} {
 			continue
 		}
 
-		if ft.Type.Kind() == reflect.Struct {
+		if ft.Type.Kind() == reflect.Struct && ft.Type.Name() != "Time" {
 			vs := dbToStruct(ft.Type, fv)
 			values = append(values, vs...)
 			continue
