@@ -25,6 +25,10 @@ func (e List) Hasher() error {
 	return nil
 }
 
+func (e List) IDValue(id ...uint) uint {
+	return 0
+}
+
 func (e List) UniqueCode(uc ...string) string {
 	return ""
 }
