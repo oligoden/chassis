@@ -157,7 +157,6 @@ func NewView(w http.ResponseWriter) *View {
 }
 
 type TestData struct {
-	ID    uint   `gosql:"primary_key" json:"-"`
 	Field string `form:"field" json:"field"`
 	data.Default
 }
@@ -174,15 +173,8 @@ func (TestData) TableName() string {
 	return "testdata"
 }
 
-func (e *TestData) IDValue(id ...uint) uint {
-	if len(id) > 0 {
-		e.ID = id[0]
-	}
-	return e.ID
-}
-
 func (TestData) Migrate(db *sql.DB) error {
-	q := "CREATE TABLE `testdata` (`id` int unsigned AUTO_INCREMENT, `field` varchar(255), `uc` varchar(255) UNIQUE, `owner_id` int unsigned, `perms` varchar(255), `hash` varchar(255), PRIMARY KEY (`id`))"
+	q := "CREATE TABLE `testdata` (`field` varchar(255), `id` int unsigned AUTO_INCREMENT, `uc` varchar(255) UNIQUE, `owner_id` int unsigned, `perms` varchar(255), `hash` varchar(255), PRIMARY KEY (`id`))"
 	_, err := db.Exec(q)
 	if err != nil {
 		return fmt.Errorf("doing test_data migration: %w", err)

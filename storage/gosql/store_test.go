@@ -110,7 +110,6 @@ func TestNewStore(t *testing.T) {
 }
 
 type TestData struct {
-	ID            uint   `gosql:"primary_key"`
 	Field         string `form:"field"`
 	field         string
 	SubData       []SubData `gosql:"-"`
@@ -119,6 +118,7 @@ type TestData struct {
 }
 
 type Default struct {
+	ID       uint   `gosql:"primary_key"`
 	UC       string `gorm:"unique" json:"uc" form:"uc"`
 	GroupIDs []uint `gosql:"-" json:"-"`
 	UserIDs  []uint `gosql:"-" json:"-"`

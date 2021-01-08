@@ -10,9 +10,9 @@ import (
 
 func TestGenInsert(t *testing.T) {
 	e := &TestData{
-		ID:    1,
 		Field: "test",
 	}
+	e.ID = 1
 	e.UC = "uc"
 	e.OwnerID = 1
 	e.Perms = ":::"

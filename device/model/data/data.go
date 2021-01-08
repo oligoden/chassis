@@ -18,6 +18,7 @@ type Operator interface {
 }
 
 type Default struct {
+	ID       uint   `gosql:"primary_key" json:"-"`
 	UC       string `gorm:"unique" json:"uc" form:"uc"`
 	GroupIDs []uint `gosql:"-" json:"-"`
 	UserIDs  []uint `gosql:"-" json:"-"`
@@ -36,6 +37,13 @@ func (e Default) Complete() error {
 
 func (e *Default) TableName() string {
 	return "models"
+}
+
+func (e *Default) IDValue(id ...uint) uint {
+	if len(id) > 0 {
+		e.ID = id[0]
+	}
+	return e.ID
 }
 
 func (e *Default) UniqueCode(uc ...string) string {

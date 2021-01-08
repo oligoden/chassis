@@ -69,7 +69,7 @@ func TestReadRecord(t *testing.T) {
 	}
 	defer db.Close()
 
-	q := "CREATE TABLE `testdata` (`id` int unsigned AUTO_INCREMENT, `field` varchar(255), `uc` varchar(255) UNIQUE, `owner_id` int unsigned, `perms` varchar(255), `hash` varchar(255), PRIMARY KEY (`id`))"
+	q := "CREATE TABLE `testdata` (`field` varchar(255), `id` int unsigned AUTO_INCREMENT, `uc` varchar(255) UNIQUE, `owner_id` int unsigned, `perms` varchar(255), `hash` varchar(255), PRIMARY KEY (`id`))"
 	_, err = db.Exec(q)
 	if err != nil {
 		t.Fatal(err)
@@ -90,7 +90,7 @@ func TestReadRecord(t *testing.T) {
 		t.Error(c.Err())
 	}
 
-	exp := "{1 a  [] [] {xx [] [] 1 ::: xyz}}"
+	exp := "{a  [] [] {1 xx [] [] 1 ::: xyz}}"
 	got := fmt.Sprint(e)
 	if exp != got {
 		t.Errorf(`expected "%s", got "%s"`, exp, got)
@@ -106,7 +106,7 @@ func TestReadMap(t *testing.T) {
 	}
 	defer db.Close()
 
-	q := "CREATE TABLE `testdata` (`id` int unsigned AUTO_INCREMENT, `field` varchar(255), `uc` varchar(255) UNIQUE, `owner_id` int unsigned, `perms` varchar(255), `hash` varchar(255), PRIMARY KEY (`id`))"
+	q := "CREATE TABLE `testdata` (`field` varchar(255), `id` int unsigned AUTO_INCREMENT, `uc` varchar(255) UNIQUE, `owner_id` int unsigned, `perms` varchar(255), `hash` varchar(255), PRIMARY KEY (`id`))"
 	_, err = db.Exec(q)
 	if err != nil {
 		t.Fatal(err)
@@ -133,7 +133,7 @@ func TestReadMap(t *testing.T) {
 		t.Error(c.Err())
 	}
 
-	exp := "map[xx:{1 a  [] [] {xx [] [] 1 ::: xyz}} yy:{2 b  [] [] {yy [] [] 1 ::: jkl}}]"
+	exp := "map[xx:{a  [] [] {1 xx [] [] 1 ::: xyz}} yy:{b  [] [] {2 yy [] [] 1 ::: jkl}}]"
 	got := fmt.Sprint(e)
 	if exp != got {
 		t.Errorf(`expected "%s", got "%s"`, exp, got)
@@ -149,7 +149,7 @@ func TestReadSlice(t *testing.T) {
 	}
 	defer db.Close()
 
-	q := "CREATE TABLE `testdata` (`id` int unsigned AUTO_INCREMENT, `field` varchar(255), `uc` varchar(255) UNIQUE, `owner_id` int unsigned, `perms` varchar(255), `hash` varchar(255), PRIMARY KEY (`id`))"
+	q := "CREATE TABLE `testdata` (`field` varchar(255), `id` int unsigned AUTO_INCREMENT, `uc` varchar(255) UNIQUE, `owner_id` int unsigned, `perms` varchar(255), `hash` varchar(255), PRIMARY KEY (`id`))"
 	_, err = db.Exec(q)
 	if err != nil {
 		t.Fatal(err)
@@ -176,7 +176,7 @@ func TestReadSlice(t *testing.T) {
 		t.Error(c.Err())
 	}
 
-	exp := "[{1 a  [] [] {xx [] [] 1 ::: xyz}} {2 b  [] [] {yy [] [] 1 ::: jkl}}]"
+	exp := "[{a  [] [] {1 xx [] [] 1 ::: xyz}} {b  [] [] {2 yy [] [] 1 ::: jkl}}]"
 	got := fmt.Sprint(e)
 	if exp != got {
 		t.Errorf(`expected "%s", got "%s"`, exp, got)

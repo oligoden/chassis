@@ -1,6 +1,11 @@
 # chassis
 A MVC that handles storage and authorisation.
 
+device -> device/model -> storage
+device -> device/model -> device/model/data -> storage
+device -> device/view -> device/model
+storage/gosql -> storage
+
 ## Installation
 
 ```bash
