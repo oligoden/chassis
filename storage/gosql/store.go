@@ -160,6 +160,13 @@ func (e User) Complete() error {
 	return nil
 }
 
+func (e *User) IDValue(id ...uint) uint {
+	if len(id) > 0 {
+		e.OwnerID = id[0]
+	}
+	return e.OwnerID
+}
+
 func (e *User) UniqueCode(uc ...string) string {
 	if len(uc) > 0 {
 		e.UC = uc[0]
