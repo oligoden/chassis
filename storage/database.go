@@ -5,6 +5,7 @@ type Crudder interface {
 	Create(Operator)
 	Read(Operator)
 	Update(Operator)
+	Delete(Operator)
 	AddModifiers(...Modifier)
 	Err(...error) error
 }

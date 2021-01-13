@@ -45,8 +45,8 @@ func TestCreate(t *testing.T) {
 	s.Migrate(e)
 	c := s.Connect(1, []uint{})
 	c.Create(e)
-	if s.Err() != nil {
-		t.Error(s.Err())
+	if c.Err() != nil {
+		t.Error(c.Err())
 	}
 
 	db, err := sql.Open(dbt, uri)
@@ -91,8 +91,8 @@ func TestUniqueCodeGeneration(t *testing.T) {
 		t.Error(s.Err())
 	}
 	c.Create(e)
-	if s.Err() != nil {
-		t.Error(s.Err())
+	if c.Err() != nil {
+		t.Error(c.Err())
 	}
 
 	if len(e.UC) <= 1 {
