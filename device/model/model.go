@@ -64,10 +64,10 @@ func (m *Default) BindUser() {
 		return
 	}
 
-	u := m.Request.Header.Get("X_Session_User")
+	u := m.Request.Header.Get("X_User")
 	user, err := strconv.Atoi(u)
 	if err != nil {
-		m.Err(err)
+		m.Err(fmt.Errorf("user binding X_User, %w", err))
 		return
 	}
 	m.user = uint(user)
@@ -76,7 +76,7 @@ func (m *Default) BindUser() {
 		for _, g := range strings.Split(m.Request.Header.Get("X_User_Groups"), ",") {
 			group, err := strconv.Atoi(g)
 			if err != nil {
-				m.Err(err)
+				m.Err(fmt.Errorf("user binding X_User_Groups, %w", err))
 				return
 			}
 			m.groups = append(m.groups, uint(group))
