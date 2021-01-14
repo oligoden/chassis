@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/rand"
+	"strings"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -42,26 +43,34 @@ func New(dbt, uri string) *Store {
 
 	_, err = db.Exec("CREATE TABLE `users` (`owner_id` int unsigned AUTO_INCREMENT,`uc` varchar(255) UNIQUE NOT NULL DEFAULT '',`ts` DATETIME NULL DEFAULT CURRENT_TIMESTAMP,`username` varchar(255) NOT NULL DEFAULT '',`pass_hash` varchar(255) NOT NULL DEFAULT '',`salt` varchar(255) NOT NULL DEFAULT '',`perms` varchar(255),`hash` varchar(255) NOT NULL DEFAULT '', PRIMARY KEY (`owner_id`))")
 	if err != nil {
-		s.err = fmt.Errorf("doing new store db migration: %w", err)
-		return s
+		if !strings.Contains(err.Error(), "Error 1050") {
+			s.err = fmt.Errorf("doing new store db migration: %w", err)
+			return s
+		}
 	}
 
 	_, err = db.Exec("CREATE TABLE `groups` (`id` int unsigned AUTO_INCREMENT,`ts` DATETIME NULL DEFAULT CURRENT_TIMESTAMP,`name` varchar(255),`owner` int unsigned,`perms` varchar(255) , PRIMARY KEY (`id`))")
 	if err != nil {
-		s.err = fmt.Errorf("doing new store db migration: %w", err)
-		return s
+		if !strings.Contains(err.Error(), "Error 1050") {
+			s.err = fmt.Errorf("doing new store db migration: %w", err)
+			return s
+		}
 	}
 
 	_, err = db.Exec("CREATE TABLE `record_groups` (`id` int unsigned AUTO_INCREMENT,`ts` DATETIME NULL DEFAULT CURRENT_TIMESTAMP,`record_id` varchar(255),`group_id` int unsigned,`owner` int unsigned,`perms` varchar(255) , PRIMARY KEY (`id`))")
 	if err != nil {
-		s.err = fmt.Errorf("doing new store db migration: %w", err)
-		return s
+		if !strings.Contains(err.Error(), "Error 1050") {
+			s.err = fmt.Errorf("doing new store db migration: %w", err)
+			return s
+		}
 	}
 
 	_, err = db.Exec("CREATE TABLE `record_users` (`id` int unsigned AUTO_INCREMENT,`ts` DATETIME NULL DEFAULT CURRENT_TIMESTAMP,`description` varchar(255),`record_id` varchar(255),`user_id` int unsigned,`owner` int unsigned,`perms` varchar(255) , PRIMARY KEY (`id`))")
 	if err != nil {
-		s.err = fmt.Errorf("doing new store db migration: %w", err)
-		return s
+		if !strings.Contains(err.Error(), "Error 1050") {
+			s.err = fmt.Errorf("doing new store db migration: %w", err)
+			return s
+		}
 	}
 
 	return s
