@@ -85,22 +85,22 @@ func (c *Connection) Read(e storage.Operator) {
 		c.err = fmt.Errorf("opening db connection, %w", err)
 		return
 	}
-	defer db.Close()
+	defer func() {
+		db.Close()
+		c.modifiers = modifiers{}
+		c.values = []interface{}{}
+	}()
 	db.SetConnMaxLifetime(3 * time.Second)
 	db.SetMaxOpenConns(5)
 	db.SetMaxIdleConns(5)
 
 	c.GenSelect(e)
-	log.Println(c.query, c.values)
 
 	rows, err := db.Query(c.query, c.values...)
 	if err != nil {
 		c.err = fmt.Errorf("reading from db, %w", err)
 		return
 	}
-
-	c.modifiers = modifiers{}
-	c.values = []interface{}{}
 
 	// cols, err := rows.Columns()
 	// if err != nil {
@@ -110,6 +110,7 @@ func (c *Connection) Read(e storage.Operator) {
 
 	// fmt.Println("cols", cols)
 
+	nRows := 0
 	for rows.Next() {
 		tRow := t
 
@@ -124,7 +125,7 @@ func (c *Connection) Read(e storage.Operator) {
 			vRow := reflect.New(tRow).Elem()
 			eRow, ok := vRow.Addr().Interface().(storage.Operator)
 			if !ok {
-				c.err = fmt.Errorf("not type storage.Storer")
+				c.err = fmt.Errorf("not type storage.Operator")
 				return
 			}
 
@@ -147,7 +148,9 @@ func (c *Connection) Read(e storage.Operator) {
 			}
 			v.Set(reflect.Append(v, vRow))
 		}
+		nRows++
 	}
+	log.Printf("read %d rows, %s, %v", nRows, c.query, c.values)
 }
 
 func dbToStruct(t reflect.Type, v reflect.Value) []interface{} {
