@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/oligoden/chassis/storage"
@@ -21,8 +22,16 @@ func (c *Connection) GenUpdate(e storage.Operator) {
 
 	c.values = []interface{}{}
 	c.values = append(c.values, vs...)
-	c.values = append(c.values, e.IDValue())
-	c.query = fmt.Sprintf("UPDATE %s SET %s WHERE id = ?", e.TableName(), q)
+
+	wq, wvs := c.modifiers.Compile()
+	if !strings.Contains(wq, "WHERE") {
+		w := NewWhere("id = ?", e.IDValue())
+		c.AddModifiers(w)
+		wq, wvs = c.modifiers.Compile()
+	}
+	c.values = append(c.values, wvs...)
+
+	c.query = fmt.Sprintf("UPDATE %s SET %s %s", e.TableName(), q, wq)
 }
 
 func structToUpdateQ(e interface{}, q *string) ([]interface{}, error) {
@@ -105,7 +114,7 @@ func (c *Connection) Update(e storage.Operator) {
 			c.err = err
 			return
 		}
-		c.err = errors.New("create authorization failed")
+		c.err = errors.New("update authorization failed")
 		return
 	}
 
