@@ -96,22 +96,22 @@ func structToUpdateQ(e interface{}, q *string) ([]interface{}, error) {
 }
 
 func (c *Connection) Update(e storage.Operator) {
-	if c.store.err != nil {
+	if c.err != nil {
 		return
 	}
 
 	if auth, err := Authorize(e, "u", c.user, c.groups); !auth {
 		if err != nil {
-			c.store.err = err
+			c.err = err
 			return
 		}
-		c.store.err = errors.New("create authorization failed")
+		c.err = errors.New("create authorization failed")
 		return
 	}
 
 	db, err := sql.Open(c.store.dbt, c.store.uri)
 	if err != nil {
-		c.store.err = fmt.Errorf("opening db connection, %w", err)
+		c.err = fmt.Errorf("opening db connection, %w", err)
 		return
 	}
 	defer db.Close()
@@ -124,6 +124,6 @@ func (c *Connection) Update(e storage.Operator) {
 
 	_, err = db.Exec(c.query, c.values...)
 	if err != nil {
-		c.store.err = err
+		c.err = err
 	}
 }
