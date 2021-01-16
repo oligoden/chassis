@@ -142,7 +142,7 @@ type User struct {
 	UC       string    `gosql:"unique" json:"uc" form:"uc"`
 	TS       time.Time `sql:"DEFAULT:CURRENT_TIMESTAMP"`
 	Username string    `gosql:"not null" json:"username"`
-	Password string    `gosql:"-" json:"password"`
+	Password string    `gosql:"-" json:"-" form:"password"`
 	PassHash string    `json:"-"`
 	Salt     string    `json:"salt"`
 	// 	UserGroups []Group   `gosql:"many2many:user_groups"`
@@ -152,6 +152,12 @@ type User struct {
 	Hash     string `json:"-"`
 }
 
+func NewUserRecord() *User {
+	r := &User{}
+	r.Perms = ":::c"
+	return r
+}
+
 func (User) TableName() string {
 	return "users"
 }
@@ -159,11 +165,6 @@ func (User) TableName() string {
 func (e User) Prepare() error {
 	return nil
 }
-
-// func (e *User) Read(db storage.DBReader, params ...string) error {
-// 	db.First(e, params...)
-// 	return nil
-// }
 
 func (e User) Complete() error {
 	return nil
