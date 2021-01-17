@@ -212,7 +212,7 @@ func TestReadUser(t *testing.T) {
 		t.Error(c.Err())
 	}
 
-	exp := "usr    [] [] :::r vbn}]"
+	exp := "usr    [] [] :::r vbn"
 	got := fmt.Sprint(e)
 	if !strings.Contains(got, exp) {
 		t.Errorf(`expected "%s", got "%s"`, exp, got)

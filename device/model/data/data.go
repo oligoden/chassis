@@ -11,9 +11,7 @@ import (
 type Operator interface {
 	Prepare() error
 	Complete() error
-	// Read(storage.DBReader, ...string) error
 	Hasher() error
-	// TableName() string
 	storage.Operator
 }
 

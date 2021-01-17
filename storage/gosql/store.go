@@ -2,10 +2,12 @@ package gosql
 
 import (
 	"crypto/sha1"
+	"crypto/sha256"
 	"database/sql"
 	"encoding/json"
 	"fmt"
 	"math/rand"
+	"net/http"
 	"strings"
 	"time"
 
@@ -18,7 +20,7 @@ type Store struct {
 	err              error
 	uniqueCodeLength uint
 	ucFunc           func(uint) string
-	rs               rand.Source
+	rnd              *rand.Rand
 }
 
 func New(dbt, uri string) *Store {
@@ -38,7 +40,8 @@ func New(dbt, uri string) *Store {
 	s.uri = uri
 
 	s.uniqueCodeLength = 2
-	s.rs = rand.NewSource(time.Now().UnixNano())
+	rs := rand.NewSource(time.Now().UnixNano())
+	s.rnd = rand.New(rs)
 	s.ucFunc = s.randString
 
 	_, err = db.Exec("CREATE TABLE `users` (`owner_id` int unsigned AUTO_INCREMENT,`uc` varchar(255) UNIQUE NOT NULL DEFAULT '',`ts` DATETIME NULL DEFAULT CURRENT_TIMESTAMP,`username` varchar(255) NOT NULL DEFAULT '',`pass_hash` varchar(255) NOT NULL DEFAULT '',`salt` varchar(255) NOT NULL DEFAULT '',`perms` varchar(255),`hash` varchar(255) NOT NULL DEFAULT '', PRIMARY KEY (`owner_id`))")
@@ -114,13 +117,17 @@ const (
 	letterIdxMax        = 63 / letterIdxBits
 )
 
-// RandString generates a random string
 func (s Store) randString(n uint) string {
+	return randString(n, s.rnd)
+}
+
+// randString generates a random string
+func randString(n uint, rnd *rand.Rand) string {
 	// solution from http://stackoverflow.com/a/31832326
 	b := make([]byte, n)
-	for i, cache, remain := int(n-1), s.rs.Int63(), letterIdxMax; i >= 0; {
+	for i, cache, remain := int(n-1), rnd.Int63(), letterIdxMax; i >= 0; {
 		if remain == 0 {
-			cache, remain = s.rs.Int63(), letterIdxMax
+			cache, remain = rnd.Int63(), letterIdxMax
 		}
 		if idx := int(cache & letterIdxMask); idx < len(numalphaLetterBytes) {
 			b[i] = numalphaLetterBytes[idx]
@@ -150,10 +157,14 @@ type User struct {
 	UserIDs  []uint `gosql:"-" json:"-"`
 	Perms    string `json:"-"`
 	Hash     string `json:"-"`
+	rnd      *rand.Rand
+	req      *http.Request
 }
 
-func NewUserRecord() *User {
+func NewUserRecord(req *http.Request, rnd *rand.Rand) *User {
 	r := &User{}
+	r.req = req
+	r.rnd = rnd
 	r.Perms = ":::c"
 	return r
 }
@@ -162,11 +173,18 @@ func (User) TableName() string {
 	return "users"
 }
 
-func (e User) Prepare() error {
+func (e *User) Prepare() error {
+	h := sha256.New()
+	h.Write([]byte(e.Password + e.Salt))
+	bs := h.Sum(nil)
+	e.PassHash = fmt.Sprintf("%x", bs)
+
+	e.Username = randString(6, e.rnd)
 	return nil
 }
 
 func (e User) Complete() error {
+	e.req.Header.Set("X_User", fmt.Sprint(e.IDValue()))
 	return nil
 }
 
