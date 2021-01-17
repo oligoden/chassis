@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"math/rand"
 	"net/http"
 	"strconv"
 	"strings"
@@ -48,6 +49,7 @@ type Default struct {
 
 type Connector interface {
 	Connect(user uint, groups []uint) storage.Crudder
+	Rnd() *rand.Rand
 }
 
 func (m Default) User() (uint, []uint) {

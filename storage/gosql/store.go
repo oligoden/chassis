@@ -140,6 +140,10 @@ func randString(n uint, rnd *rand.Rand) string {
 	return string(b)
 }
 
+func (s Store) Rnd() *rand.Rand {
+	return s.rnd
+}
+
 func (s Store) Err() error {
 	return s.err
 }
