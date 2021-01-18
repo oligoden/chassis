@@ -28,6 +28,7 @@ type Operator interface {
 type Communicator interface {
 	Bind()
 	User() (uint, []uint)
+	Session() uint
 	Hasher()
 	Err(...interface{}) error
 }
@@ -40,6 +41,7 @@ type Default struct {
 	Request *http.Request        `json:"-"`
 	NewData func() data.Operator `json:"-"`
 	Hash    string               `json:"hash"`
+	sesh    uint
 	user    uint
 	groups  []uint
 	err     []error
@@ -54,6 +56,10 @@ type Connector interface {
 
 func (m Default) User() (uint, []uint) {
 	return m.user, m.groups
+}
+
+func (m Default) Session() uint {
+	return m.sesh
 }
 
 func (m *Default) BindUser() {
@@ -73,6 +79,14 @@ func (m *Default) BindUser() {
 		return
 	}
 	m.user = uint(user)
+
+	s := m.Request.Header.Get("X_Session")
+	sesh, err := strconv.Atoi(s)
+	if err != nil {
+		m.Err(fmt.Errorf("user binding X_User, %w", err))
+		return
+	}
+	m.sesh = uint(sesh)
 
 	if m.Request.Header.Get("X_User_Groups") != "" {
 		for _, g := range strings.Split(m.Request.Header.Get("X_User_Groups"), ",") {
