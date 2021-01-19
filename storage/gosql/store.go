@@ -169,7 +169,7 @@ func NewUserRecord(req *http.Request, rnd *rand.Rand) *User {
 	r := &User{}
 	r.req = req
 	r.rnd = rnd
-	r.Perms = ":::c"
+	r.Perms = ":::cr"
 	return r
 }
 
@@ -188,7 +188,7 @@ func (e *User) Prepare() error {
 }
 
 func (e User) Complete() error {
-	e.req.Header.Set("X_User", fmt.Sprint(e.IDValue()))
+	e.req.Header.Set("X_user", fmt.Sprint(e.IDValue()))
 	return nil
 }
 
