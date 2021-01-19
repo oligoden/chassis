@@ -72,27 +72,27 @@ func (m *Default) BindUser() {
 		return
 	}
 
-	u := m.Request.Header.Get("X_User")
+	u := m.Request.Header.Get("X_user")
 	user, err := strconv.Atoi(u)
 	if err != nil {
-		m.Err(fmt.Errorf("user binding X_User, %w", err))
+		m.Err(fmt.Errorf("user binding X_user, %w", err))
 		return
 	}
 	m.user = uint(user)
 
-	s := m.Request.Header.Get("X_Session")
+	s := m.Request.Header.Get("X_session")
 	sesh, err := strconv.Atoi(s)
 	if err != nil {
-		m.Err(fmt.Errorf("user binding X_User, %w", err))
+		m.Err(fmt.Errorf("user binding X_user, %w", err))
 		return
 	}
 	m.sesh = uint(sesh)
 
-	if m.Request.Header.Get("X_User_Groups") != "" {
-		for _, g := range strings.Split(m.Request.Header.Get("X_User_Groups"), ",") {
+	if m.Request.Header.Get("X_user_groups") != "" {
+		for _, g := range strings.Split(m.Request.Header.Get("X_user_groups"), ",") {
 			group, err := strconv.Atoi(g)
 			if err != nil {
-				m.Err(fmt.Errorf("user binding X_User_Groups, %w", err))
+				m.Err(fmt.Errorf("user binding X_user_groups, %w", err))
 				return
 			}
 			m.groups = append(m.groups, uint(group))
