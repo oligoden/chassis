@@ -130,12 +130,12 @@ func (c *Connection) Create(e storage.Operator) {
 		return
 	}
 
-	affected, err := result.RowsAffected()
-	if err != nil {
-		c.err = err
-		return
+	created := int64(0)
+	if result != nil {
+		created, _ = result.RowsAffected()
 	}
-	fmt.Printf("\n%s\ncreated: %d, values: %v\n\n", c.query, affected, c.values)
+
+	fmt.Printf("\n%s\ncreated: %d, values: %v\n", c.query, created, c.values)
 	e.IDValue(uint(id))
 }
 

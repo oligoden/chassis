@@ -3,7 +3,6 @@ package gosql
 import (
 	"database/sql"
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
@@ -71,17 +70,14 @@ func (c *Connection) Delete(e storage.Operator) {
 
 	result, err := db.Exec(c.query, c.values...)
 	if err != nil {
-		log.Println(c.query, c.values)
 		c.err = fmt.Errorf("reading from db, %w", err)
-		return
 	}
 
-	deleted, err := result.RowsAffected()
-	if err != nil {
-		c.err = err
-		return
+	deleted := int64(0)
+	if result != nil {
+		deleted, _ = result.RowsAffected()
 	}
-	fmt.Printf("\n%s\ndeleted: %d, values: %v\n\n", c.query, deleted, c.values)
+	fmt.Printf("\n%s\ndeleted: %d, values: %v\n", c.query, deleted, c.values)
 
 	c.modifiers = modifiers{}
 	c.values = []interface{}{}

@@ -136,10 +136,10 @@ func (c *Connection) Update(e storage.Operator) {
 		c.err = err
 	}
 
-	updated, err := result.RowsAffected()
-	if err != nil {
-		c.err = err
-		return
+	updated := int64(0)
+	if result != nil {
+		updated, _ = result.RowsAffected()
 	}
-	fmt.Printf("\n%s\nupdated: %d, values: %v\n\n", c.query, updated, c.values)
+
+	fmt.Printf("\n%s\nupdated: %d, values: %v\n", c.query, updated, c.values)
 }
