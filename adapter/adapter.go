@@ -58,12 +58,12 @@ func (a Adapter) Notify() Adapter {
 				device = "tablet"
 			}
 			params = append(params, device)
-			text = text + "-- client: %s %s %s, OS: %s %s, device: %s\n"
+			text = text + "--  client: %s %s %s, OS: %s %s, device: %s\n"
 
 			user := r.Header.Get("X_user")
 			session := r.Header.Get("X_session")
 			if user != "" || session != "" {
-				text = text + "-- "
+				text = text + "--  "
 				if user != "" {
 					text = text + "user: %s"
 					params = append(params, user)
