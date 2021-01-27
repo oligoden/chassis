@@ -3,6 +3,8 @@ package adapter
 import (
 	"fmt"
 	"net/http"
+
+	"xojoc.pw/useragent"
 )
 
 type Adapter struct {
@@ -30,12 +32,78 @@ func (lrw *loggingResponseWriter) WriteHeader(code int) {
 func (a Adapter) Notify() Adapter {
 	return Adapter{
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			fmt.Printf("--> request %s %s from %s\n--  %s\n--  user %s, session %s\n", r.Method, r.URL.String(), r.RemoteAddr, r.UserAgent(), r.Header.Get("X_user"), r.Header.Get("X_session"))
+			params := []interface{}{r.Method, r.URL.String(), r.RemoteAddr}
+			text := "--> %s %s from %s\n"
+
+			ua := useragent.Parse(r.UserAgent())
+			switch ua.Type {
+			case 0:
+				params = append(params, "unknown")
+			case 1:
+				params = append(params, "browser")
+			case 2:
+				params = append(params, "crawler")
+			default:
+				params = append(params, "other")
+			}
+			params = append(params, ua.Name)
+			params = append(params, ua.Version)
+			params = append(params, ua.OS)
+			params = append(params, ua.OSVersion)
+			device := "computer"
+			if ua.Mobile {
+				device = "mobile"
+			}
+			if ua.Tablet {
+				device = "tablet"
+			}
+			params = append(params, device)
+			text = text + "-- client: %s %s %s, OS: %s %s, device: %s\n"
+
+			user := r.Header.Get("X_user")
+			session := r.Header.Get("X_session")
+			if user != "" || session != "" {
+				text = text + "-- "
+				if user != "" {
+					text = text + "user: %s"
+					params = append(params, user)
+				}
+				if session != "" {
+					if user != "" {
+						text = text + ", "
+					}
+					text = text + "session: %s"
+					params = append(params, session)
+				}
+				text = text + "\n"
+			}
+
+			fmt.Printf(text, params...)
 
 			lw := NewLoggingResponseWriter(w)
 			a.Handler.ServeHTTP(lw, r)
 
-			fmt.Printf("<-- response %d %s %s\n\n", lw.statusCode, w.Header().Get("X_user"), w.Header().Get("X_session"))
+			params = []interface{}{lw.statusCode}
+			text = "<-- %d"
+			user = w.Header().Get("X_user")
+			session = w.Header().Get("X_session")
+			if user != "" || session != "" {
+				text = text + ", "
+				if user != "" {
+					text = text + "user: %s"
+					params = append(params, user)
+				}
+				if session != "" {
+					if user != "" {
+						text = text + ", "
+					}
+					text = text + "session: %s"
+					params = append(params, session)
+				}
+			}
+			text = text + "\n\n"
+
+			fmt.Printf(text, params...)
 		}),
 	}
 }

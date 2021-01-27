@@ -75,8 +75,13 @@ func (c *Connection) Delete(e storage.Operator) {
 		c.err = fmt.Errorf("reading from db, %w", err)
 		return
 	}
-	rowsAffected, _ := result.RowsAffected()
-	log.Println(c.query, c.values, rowsAffected)
+
+	deleted, err := result.RowsAffected()
+	if err != nil {
+		c.err = err
+		return
+	}
+	fmt.Printf("%s\ndeleted: %d, values: %v\n", c.query, deleted, c.values)
 
 	c.modifiers = modifiers{}
 	c.values = []interface{}{}

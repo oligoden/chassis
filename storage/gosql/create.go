@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"log"
 	"reflect"
 	"regexp"
 	"strings"
@@ -111,10 +110,10 @@ func (c *Connection) Create(e storage.Operator) {
 		c.logger.Log("")
 	}
 
-	rs, err := c.db.Exec(c.query, c.values...)
+	result, err := c.db.Exec(c.query, c.values...)
 	if err != nil {
 		if isDuplicateUC(err) {
-			rs, err = c.retryCreate(e)
+			result, err = c.retryCreate(e)
 			if err != nil {
 				c.err = err
 				return
@@ -125,12 +124,18 @@ func (c *Connection) Create(e storage.Operator) {
 		}
 	}
 
-	log.Println(c.query, c.values)
-	id, err := rs.LastInsertId()
+	id, err := result.LastInsertId()
 	if err != nil {
 		c.err = err
 		return
 	}
+
+	affected, err := result.RowsAffected()
+	if err != nil {
+		c.err = err
+		return
+	}
+	fmt.Printf("%s\ncreated: %d, values: %v\n", c.query, affected, c.values)
 	e.IDValue(uint(id))
 }
 

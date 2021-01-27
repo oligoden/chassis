@@ -150,7 +150,7 @@ func (c *Connection) Read(e storage.Operator) {
 		}
 		nRows++
 	}
-	log.Printf("read %d rows, %s, %v", nRows, c.query, c.values)
+	log.Printf("%s\nread: %d, values: %v\n", c.query, nRows, c.values)
 }
 
 func dbToStruct(t reflect.Type, v reflect.Value) []interface{} {

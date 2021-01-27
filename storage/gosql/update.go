@@ -131,8 +131,15 @@ func (c *Connection) Update(e storage.Operator) {
 	c.GenUpdate(e)
 	log.Println(c.query, c.values)
 
-	_, err = db.Exec(c.query, c.values...)
+	result, err := db.Exec(c.query, c.values...)
 	if err != nil {
 		c.err = err
 	}
+
+	updated, err := result.RowsAffected()
+	if err != nil {
+		c.err = err
+		return
+	}
+	fmt.Printf("%s\nupdated: %d, values: %v\n", c.query, updated, c.values)
 }
