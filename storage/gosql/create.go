@@ -135,7 +135,7 @@ func (c *Connection) Create(e storage.Operator) {
 		c.err = err
 		return
 	}
-	fmt.Printf("%s\ncreated: %d, values: %v\n", c.query, affected, c.values)
+	fmt.Printf("\n%s\ncreated: %d, values: %v\n\n", c.query, affected, c.values)
 	e.IDValue(uint(id))
 }
 

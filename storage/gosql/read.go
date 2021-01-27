@@ -3,7 +3,6 @@ package gosql
 import (
 	"database/sql"
 	"fmt"
-	"log"
 	"reflect"
 	"strings"
 	"time"
@@ -150,7 +149,7 @@ func (c *Connection) Read(e storage.Operator) {
 		}
 		nRows++
 	}
-	log.Printf("%s\nread: %d, values: %v\n", c.query, nRows, c.values)
+	fmt.Printf("\n%s\nread: %d, values: %v\n\n", c.query, nRows, c.values)
 }
 
 func dbToStruct(t reflect.Type, v reflect.Value) []interface{} {

@@ -141,5 +141,5 @@ func (c *Connection) Update(e storage.Operator) {
 		c.err = err
 		return
 	}
-	fmt.Printf("%s\nupdated: %d, values: %v\n", c.query, updated, c.values)
+	fmt.Printf("\n%s\nupdated: %d, values: %v\n\n", c.query, updated, c.values)
 }

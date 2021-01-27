@@ -81,7 +81,7 @@ func (c *Connection) Delete(e storage.Operator) {
 		c.err = err
 		return
 	}
-	fmt.Printf("%s\ndeleted: %d, values: %v\n", c.query, deleted, c.values)
+	fmt.Printf("\n%s\ndeleted: %d, values: %v\n\n", c.query, deleted, c.values)
 
 	c.modifiers = modifiers{}
 	c.values = []interface{}{}
