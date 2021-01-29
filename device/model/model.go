@@ -83,7 +83,7 @@ func (m *Default) BindUser() {
 	s := m.Request.Header.Get("X_session")
 	sesh, err := strconv.Atoi(s)
 	if err != nil {
-		m.Err(fmt.Errorf("user binding X_user, %w", err))
+		m.Err(fmt.Errorf("session binding X_session, %w", err))
 		return
 	}
 	m.sesh = uint(sesh)

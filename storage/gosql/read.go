@@ -10,8 +10,18 @@ import (
 	"github.com/oligoden/chassis/storage"
 )
 
-func (c *Connection) GenSelect(e storage.TableNamer) {
-	c.ReadAuthorization(e.TableName())
+func (c *Connection) GenSelect(e storage.TableNamer, ps ...string) {
+	skipAuth := false
+
+	for _, p := range ps {
+		if p == "skip-auth" {
+			skipAuth = true
+		}
+	}
+
+	if !skipAuth {
+		c.ReadAuthorization(e.TableName())
+	}
 
 	q, vs := c.modifiers.Compile()
 	c.values = append(c.values, vs...)
@@ -21,12 +31,6 @@ func (c *Connection) GenSelect(e storage.TableNamer) {
 
 func (c *Connection) ReadAuthorization(t string, params ...string) {
 	perm := "r"
-
-	for _, param := range params {
-		if param == "with-update" {
-			perm = "u"
-		}
-	}
 
 	permsZ := fmt.Sprintf("%%:%%:%%:%%%s%%", perm)
 	permsA := fmt.Sprintf("%%:%%:%%%s%%:%%", perm)
@@ -58,7 +62,7 @@ func (c *Connection) ReadAuthorization(t string, params ...string) {
 	c.modifiers = append(c.modifiers, NewWhereGroup(where))
 }
 
-func (c *Connection) Read(e storage.Operator) {
+func (c *Connection) Read(e storage.Operator, ps ...string) {
 	if c.err != nil {
 		return
 	}
@@ -93,7 +97,7 @@ func (c *Connection) Read(e storage.Operator) {
 	db.SetMaxOpenConns(5)
 	db.SetMaxIdleConns(5)
 
-	c.GenSelect(e)
+	c.GenSelect(e, ps...)
 
 	rows, err := db.Query(c.query, c.values...)
 	if err != nil {

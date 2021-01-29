@@ -3,7 +3,7 @@ package storage
 type Crudder interface {
 	// Where(WhereSetter)
 	Create(Operator)
-	Read(Operator)
+	Read(Operator, ...string)
 	Update(Operator)
 	Delete(Operator)
 	AddModifiers(...Modifier)

@@ -30,7 +30,8 @@ func TestRead(t *testing.T) {
 	}
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	req.Header.Set("X_Session_User", "1")
+	req.Header.Set("X_user", "1")
+	req.Header.Set("X_session", "1")
 
 	s := gosql.New(dbt, uri)
 	m := NewModel(req, s)

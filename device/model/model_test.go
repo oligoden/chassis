@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/oligoden/chassis/device/model"
@@ -77,7 +78,7 @@ func TestBindUserNoUserError(t *testing.T) {
 	m.BindUser()
 	exp := `strconv.Atoi: parsing "": invalid syntax`
 	got := m.Err().Error()
-	if got != exp {
+	if !strings.Contains(got, exp) {
 		t.Errorf(`expected "%s", got "%s"`, exp, got)
 	}
 }
@@ -85,7 +86,7 @@ func TestBindUserNoUserError(t *testing.T) {
 func TestBindUserNotUserIntError(t *testing.T) {
 	m := &Model{}
 	req := httptest.NewRequest(http.MethodPost, "/", nil)
-	req.Header.Set("X_Session_User", "a")
+	req.Header.Set("X_user", "a")
 	m.Default = model.Default{
 		Request: req,
 	}
@@ -93,7 +94,40 @@ func TestBindUserNotUserIntError(t *testing.T) {
 	m.BindUser()
 	exp := `strconv.Atoi: parsing "a": invalid syntax`
 	got := m.Err().Error()
-	if got != exp {
+	if !strings.Contains(got, exp) {
+		t.Errorf(`expected "%s", got "%s"`, exp, got)
+	}
+}
+
+func TestBindUserNoSessionError(t *testing.T) {
+	m := &Model{}
+	req := httptest.NewRequest(http.MethodPost, "/", nil)
+	req.Header.Set("X_user", "1")
+	m.Default = model.Default{
+		Request: req,
+	}
+
+	m.BindUser()
+	exp := `strconv.Atoi: parsing "": invalid syntax`
+	got := m.Err().Error()
+	if !strings.Contains(got, exp) {
+		t.Errorf(`expected "%s", got "%s"`, exp, got)
+	}
+}
+
+func TestBindNotSessionIntError(t *testing.T) {
+	m := &Model{}
+	req := httptest.NewRequest(http.MethodPost, "/", nil)
+	req.Header.Set("X_user", "1")
+	req.Header.Set("X_session", "a")
+	m.Default = model.Default{
+		Request: req,
+	}
+
+	m.BindUser()
+	exp := `strconv.Atoi: parsing "a": invalid syntax`
+	got := m.Err().Error()
+	if !strings.Contains(got, exp) {
 		t.Errorf(`expected "%s", got "%s"`, exp, got)
 	}
 }
@@ -101,7 +135,8 @@ func TestBindUserNotUserIntError(t *testing.T) {
 func TestBindNotGroupIntError(t *testing.T) {
 	m := &Model{}
 	req := httptest.NewRequest(http.MethodPost, "/", nil)
-	req.Header.Set("X_Session_User", "1")
+	req.Header.Set("X_user", "1")
+	req.Header.Set("X_session", "1")
 	req.Header.Set("X_User_Groups", "a")
 	m.Default = model.Default{
 		Request: req,
@@ -110,7 +145,7 @@ func TestBindNotGroupIntError(t *testing.T) {
 	m.BindUser()
 	exp := `strconv.Atoi: parsing "a": invalid syntax`
 	got := m.Err().Error()
-	if got != exp {
+	if !strings.Contains(got, exp) {
 		t.Errorf(`expected "%s", got "%s"`, exp, got)
 	}
 }

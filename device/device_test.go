@@ -28,7 +28,8 @@ func TestCreate(t *testing.T) {
 	f.Set("field", "test")
 	r := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(f.Encode()))
 	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	r.Header.Set("X_Session_User", `1`)
+	r.Header.Set("X_user", `1`)
+	r.Header.Set("X_session", `1`)
 	w := httptest.NewRecorder()
 
 	s := gosql.New(dbt, uri)
@@ -85,7 +86,7 @@ func TestRead(t *testing.T) {
 	}
 	defer db.Close()
 
-	q := "CREATE TABLE `testdata` (`id` int unsigned AUTO_INCREMENT, `field` varchar(255), `uc` varchar(255) UNIQUE, `owner_id` int unsigned, `perms` varchar(255), `hash` varchar(255), PRIMARY KEY (`id`))"
+	q := "CREATE TABLE `testdata` (`field` varchar(255), `id` int unsigned AUTO_INCREMENT, `uc` varchar(255) UNIQUE, `owner_id` int unsigned, `perms` varchar(255), `hash` varchar(255), PRIMARY KEY (`id`))"
 	_, err = db.Exec(q)
 	if err != nil {
 		t.Fatal(err)
@@ -98,7 +99,8 @@ func TestRead(t *testing.T) {
 	}
 
 	r := httptest.NewRequest(http.MethodGet, "/", nil)
-	r.Header.Set("X_Session_User", `1`)
+	r.Header.Set("X_user", `1`)
+	r.Header.Set("X_session", `1`)
 	w := httptest.NewRecorder()
 
 	s := gosql.New(dbt, uri)
@@ -124,7 +126,7 @@ func TestUpdate(t *testing.T) {
 	}
 	defer db.Close()
 
-	q := "CREATE TABLE `testdata` (`id` int unsigned AUTO_INCREMENT, `field` varchar(255), `uc` varchar(255) UNIQUE, `owner_id` int unsigned, `perms` varchar(255), `hash` varchar(255), PRIMARY KEY (`id`))"
+	q := "CREATE TABLE `testdata` (`field` varchar(255), `id` int unsigned AUTO_INCREMENT, `uc` varchar(255) UNIQUE, `owner_id` int unsigned, `perms` varchar(255), `hash` varchar(255), PRIMARY KEY (`id`))"
 	_, err = db.Exec(q)
 	if err != nil {
 		t.Fatal(err)
@@ -140,7 +142,8 @@ func TestUpdate(t *testing.T) {
 	f.Set("field", "b")
 	r := httptest.NewRequest(http.MethodPut, "/", strings.NewReader(f.Encode()))
 	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	r.Header.Set("X_Session_User", `1`)
+	r.Header.Set("X_user", `1`)
+	r.Header.Set("X_session", `1`)
 	w := httptest.NewRecorder()
 
 	s := gosql.New(dbt, uri)
@@ -204,7 +207,6 @@ func NewView(w http.ResponseWriter) *View {
 }
 
 type TestData struct {
-	ID    uint   `gosql:"primary_key" json:"-"`
 	Field string `form:"field" json:"field"`
 	data.Default
 }

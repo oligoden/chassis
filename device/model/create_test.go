@@ -127,7 +127,8 @@ func TestCreate(t *testing.T) {
 	f.Set("field", "test")
 	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(f.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	req.Header.Set("X_Session_User", "1")
+	req.Header.Set("X_user", "1")
+	req.Header.Set("X_session", "1")
 
 	s := gosql.New(dbt, uri)
 	s.UniqueCodeFunc(func(c uint) string {
