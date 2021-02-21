@@ -32,7 +32,6 @@ func (d Default) Update() http.Handler {
 		m.Bind()
 		m.Update()
 
-		v := d.NewView(w)
-		v.JSON(m)
+		d.NewView(w).Error(m)
 	})
 }
