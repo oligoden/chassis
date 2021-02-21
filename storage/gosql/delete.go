@@ -13,6 +13,11 @@ func (c *Connection) GenDelete(e storage.TableNamer) {
 	c.DeleteAuthorization(e.TableName())
 
 	q, vs := c.modifiers.Compile()
+	if !strings.Contains(q, "WHERE") {
+		w := NewWhere("id = ?", e.IDValue())
+		c.AddModifiers(w)
+		q, vs = c.modifiers.Compile()
+	}
 	c.values = append(c.values, vs...)
 
 	c.query = fmt.Sprintf("DELETE %s.* FROM %[1]s %s", e.TableName(), q)

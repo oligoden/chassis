@@ -7,13 +7,13 @@ import (
 	"github.com/oligoden/chassis/storage"
 )
 
-func Authorize(m storage.Authenticator, p string, user uint, groups []uint) (bool, error) {
-	perms := strings.Split(m.Permissions(), ":")
+func Authorize(e storage.Authenticator, p string, user uint, groups []uint) (bool, error) {
+	perms := strings.Split(e.Permissions(), ":")
 	if len(perms) != 4 {
 		return false, errors.New("the model has incorrect permissions format")
 	}
 
-	if m.Owner() == user && p != "c" {
+	if e.Owner() == user && p != "c" {
 		return true, nil
 	}
 
@@ -25,7 +25,7 @@ func Authorize(m storage.Authenticator, p string, user uint, groups []uint) (boo
 		if strings.Contains(perms[2], p) {
 			return true, nil
 		} else if strings.Contains(perms[1], p) {
-			for _, g := range m.Groups() {
+			for _, g := range e.Groups() {
 				for _, gi := range groups {
 					if g == gi {
 						return true, nil
@@ -33,7 +33,7 @@ func Authorize(m storage.Authenticator, p string, user uint, groups []uint) (boo
 				}
 			}
 		} else if strings.Contains(perms[0], p) {
-			for _, u := range m.Users() {
+			for _, u := range e.Users() {
 				if u == user {
 					return true, nil
 				}
