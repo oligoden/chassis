@@ -13,14 +13,14 @@ import (
 
 	"github.com/oligoden/chassis/device/model/data"
 	"github.com/oligoden/chassis/storage"
+	"github.com/oligoden/chassis/storage/gosql"
 )
 
 type Operator interface {
-	// Manage(storage.DBManager, string)
 	Create()
 	Read()
 	Update()
-	// Append(string, storage.DBReader)
+	Delete()
 	Communicator
 	DataSelector
 }
@@ -163,19 +163,6 @@ func (m *Default) Err(es ...interface{}) error {
 	return m.err[0]
 }
 
-// func (m *Default) Manage(db storage.DBManager, action string) {
-// 	if m.Err() != nil {
-// 		return
-// 	}
-
-// 	db.Manage(m.data, action)
-// 	err := db.Error()
-// 	if err != nil {
-// 		m.Err(err)
-// 		return
-// 	}
-// }
-
 func (m *Default) Create() {
 	if m.Err() != nil {
 		return
@@ -271,4 +258,24 @@ func (m *Default) Update() {
 	}
 
 	m.Hasher()
+}
+
+func (m *Default) Delete() {
+	if m.Err() != nil {
+		return
+	}
+
+	c := m.Store.Connect(m.User())
+
+	if m.data.UniqueCode() != "" {
+		where := gosql.NewWhere("uc = ?", m.data.UniqueCode())
+		c.AddModifiers(where)
+	}
+
+	c.Delete(m.data)
+	err := c.Err()
+	if err != nil {
+		m.Err(err)
+		return
+	}
 }

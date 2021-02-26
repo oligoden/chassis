@@ -11,7 +11,7 @@ import (
 	"github.com/oligoden/chassis/storage/gosql"
 )
 
-func TestUpdate(t *testing.T) {
+func TestDelete(t *testing.T) {
 	testCleanup(t)
 	db, err := sql.Open(dbt, uri)
 	if err != nil {
@@ -33,7 +33,7 @@ func TestUpdate(t *testing.T) {
 
 	f := make(url.Values)
 	f.Set("field", "test")
-	req := httptest.NewRequest(http.MethodPut, "/api/v1/testdatas", strings.NewReader(f.Encode()))
+	req := httptest.NewRequest(http.MethodDelete, "/api/v1/testdatas/xx", strings.NewReader(f.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("X_user", "1")
 	req.Header.Set("X_session", "1")
@@ -43,42 +43,36 @@ func TestUpdate(t *testing.T) {
 	e := &TestData{}
 	m.Data(e)
 
-	m.Read()
-	if m.Err() != nil {
-		t.Error(m.Err())
-	}
-
-	exp := "a"
-	got := e.Field
-	if got != exp {
-		t.Errorf(`expected "%s", got "%s"`, exp, got)
-	}
-
 	m.Bind()
 	if m.Err() != nil {
 		t.Error(m.Err())
 	}
 
-	m.Update()
+	exp := "xx"
+	got := e.UC
+	if got != exp {
+		t.Errorf(`expected "%s", got "%s"`, exp, got)
+	}
+
+	m.Read()
 	if m.Err() != nil {
 		t.Error(m.Err())
 	}
 
-	var field, hash string
-	err = db.QueryRow("SELECT field,hash from testdata").Scan(&field, &hash)
-	if err != nil {
-		t.Error(err)
-	}
-
-	exp = "test"
-	got = field
-	if exp != got {
+	exp = "a"
+	got = e.Field
+	if got != exp {
 		t.Errorf(`expected "%s", got "%s"`, exp, got)
 	}
 
-	exp = "8f0a824fa3a483940710071db416dab40a16a6ed"
-	got = hash
-	if exp != got {
-		t.Errorf(`expected "%s", got "%s"`, exp, got)
+	m.Delete()
+	if m.Err() != nil {
+		t.Error(m.Err())
+	}
+
+	var field string
+	err = db.QueryRow("SELECT field from testdata").Scan(&field)
+	if err == nil {
+		t.Error("expected no results")
 	}
 }

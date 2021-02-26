@@ -4,10 +4,22 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"regexp"
 	"strconv"
 )
 
 func (m *Default) bind() error {
+	rgx, _ := regexp.Compile("^/api/v[0-9]+/[a-z]+(/?|/(([a-zA-Z0-9]+)(/?|/.*)))$")
+	matches := rgx.FindStringSubmatch(m.Request.URL.Path)
+
+	if len(matches) == 0 {
+		return fmt.Errorf("bad request, incorrect URL structure")
+	}
+
+	if matches[3] != "" {
+		m.Data().UniqueCode(matches[2])
+	}
+
 	t := reflect.TypeOf(m.data).Elem()
 	if t.Kind() == reflect.Struct {
 		return m.structBind(m.data)

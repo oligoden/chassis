@@ -9,7 +9,7 @@ import (
 	"github.com/oligoden/chassis/storage"
 )
 
-func (c *Connection) GenDelete(e storage.TableNamer) {
+func (c *Connection) GenDelete(e storage.Operator) {
 	c.DeleteAuthorization(e.TableName())
 
 	q, vs := c.modifiers.Compile()

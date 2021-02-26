@@ -23,18 +23,3 @@ func NewDevice(nm NewModelFunc, nv NewViewFunc, store model.Connector) Default {
 	d.NewView = nv
 	return d
 }
-
-// func (d Default) Manage(action string) {
-// 	m := d.NewModel(nil)
-
-// 	db := d.Store.ManageDB()
-// 	if db.Error() != nil {
-// 		log.Fatal(db.Error())
-// 	}
-
-// 	m.Manage(db, action)
-// 	if m.Error() != nil {
-// 		log.Fatal(m.Error())
-// 	}
-// 	db.Close()
-// }

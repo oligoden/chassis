@@ -123,9 +123,21 @@ import (
 func TestCreate(t *testing.T) {
 	testCleanup(t)
 
+	db, err := sql.Open(dbt, uri)
+	if err != nil {
+		t.Error(err)
+	}
+	defer db.Close()
+
+	q := "CREATE TABLE `testdata` (`field` varchar(255), `id` int unsigned AUTO_INCREMENT, `uc` varchar(255) UNIQUE, `owner_id` int unsigned, `perms` varchar(255), `hash` varchar(255), PRIMARY KEY (`id`))"
+	_, err = db.Exec(q)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	f := make(url.Values)
 	f.Set("field", "test")
-	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(f.Encode()))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/testdatas", strings.NewReader(f.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("X_user", "1")
 	req.Header.Set("X_session", "1")
@@ -138,7 +150,6 @@ func TestCreate(t *testing.T) {
 		}
 		return a
 	})
-	s.Migrate(NewTestData())
 
 	m := NewModel(req, s)
 	m.Bind()
@@ -146,12 +157,6 @@ func TestCreate(t *testing.T) {
 	if m.Err() != nil {
 		t.Error(m.Err())
 	}
-
-	db, err := sql.Open(dbt, uri)
-	if err != nil {
-		t.Error(err)
-	}
-	defer db.Close()
 
 	var field, hash string
 	err = db.QueryRow("SELECT field,hash from testdata").Scan(&field, &hash)
