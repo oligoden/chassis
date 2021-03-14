@@ -69,7 +69,7 @@ func (a Adapter) Notify() Adapter {
 			for i, v := range r.Form {
 				text = text + "--- "
 				text = text + i + " = "
-				text = text + v + "\n"
+				text = text + fmt.Sprint(v) + "\n"
 			}
 			r.Body = rdr
 
