@@ -1,7 +1,9 @@
 package adapter
 
 import (
+	"bytes"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 
 	"xojoc.pw/useragent"
@@ -58,12 +60,23 @@ func (a Adapter) Notify() Adapter {
 				device = "tablet"
 			}
 			params = append(params, device)
-			text = text + "--  client: %s %s %s, OS: %s %s, device: %s\n"
+			text = text + "--- client: %s %s %s, OS: %s %s, device: %s\n"
+
+			// run the default struct binding and set the request body to a copy of the original
+			buf, _ := ioutil.ReadAll(r.Body)
+			rdr := ioutil.NopCloser(bytes.NewBuffer(buf))
+			r.ParseForm()
+			for i, v := range r.Form {
+				text = text + "--- "
+				text = text + i + " = "
+				text = text + v + "\n"
+			}
+			r.Body = rdr
 
 			user := r.Header.Get("X_user")
 			session := r.Header.Get("X_session")
 			if user != "" || session != "" {
-				text = text + "--  "
+				text = text + "--- "
 				if user != "" {
 					text = text + "user: %s"
 					params = append(params, user)

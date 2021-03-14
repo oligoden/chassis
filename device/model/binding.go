@@ -48,9 +48,9 @@ func (m *Default) structBind(s interface{}) error {
 		}
 
 		if tag, got := ft.Tag.Lookup("form"); got {
-			fmt.Printf("%s tag %s ", ft.Name, tag)
+			fmt.Printf("%s, tag: %s", ft.Name, tag)
 			if val := m.Request.FormValue(tag); val != "" {
-				fmt.Printf("val %s", val)
+				fmt.Printf(", val: %s", val)
 				setType(ft.Type.Kind(), val, fv)
 			}
 			fmt.Println()
