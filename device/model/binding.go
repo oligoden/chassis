@@ -35,7 +35,7 @@ func (m *Default) structBind(s interface{}) error {
 		return fmt.Errorf("not a struct")
 	}
 
-	fmt.Println("\nBinding:")
+	fmt.Println("\nbinding...")
 	for i := 0; i < t.NumField(); i++ {
 		ft := t.Field(i)
 		fv := v.Field(i)
@@ -48,10 +48,12 @@ func (m *Default) structBind(s interface{}) error {
 		}
 
 		if tag, got := ft.Tag.Lookup("form"); got {
+			fmt.Printf("%s tag %s ", ft.Name, tag)
 			if val := m.Request.FormValue(tag); val != "" {
-				fmt.Printf("%d. %v (%v, %v), tag: '%v'\n", i+1, ft.Name, ft.Type.Name(), ft.Type.Kind(), ft.Tag.Get("form"))
+				fmt.Printf("val %s", val)
 				setType(ft.Type.Kind(), val, fv)
 			}
+			fmt.Println()
 		}
 	}
 	return nil
