@@ -21,14 +21,13 @@ type Default struct {
 
 func (v Default) JSON(m model.Operator) {
 	if m.Err() != nil {
-		log.Println(m.Err())
-		http.Error(v.Response, "an error occured", http.StatusInternalServerError)
+		v.Error(m)
 		return
 	}
 
 	out, err := json.Marshal(m.Data())
 	if err != nil {
-		log.Println(m.Err())
+		log.Println(err)
 		http.Error(v.Response, "an error occured", http.StatusInternalServerError)
 		return
 	}
