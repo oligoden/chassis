@@ -62,16 +62,15 @@ func (a Adapter) Notify() Adapter {
 			params = append(params, device)
 			text = text + "--- client: %s %s %s, OS: %s %s, device: %s\n"
 
-			// run the default struct binding and set the request body to a copy of the original
 			buf, _ := ioutil.ReadAll(r.Body)
-			rdr := ioutil.NopCloser(bytes.NewBuffer(buf))
+			r.Body = ioutil.NopCloser(bytes.NewBuffer(buf))
 			r.ParseForm()
 			for i, v := range r.Form {
 				text = text + "--- "
 				text = text + i + " = "
 				text = text + fmt.Sprint(v) + "\n"
 			}
-			r.Body = rdr
+			r.Body = ioutil.NopCloser(bytes.NewBuffer(buf))
 
 			user := r.Header.Get("X_user")
 			session := r.Header.Get("X_session")
