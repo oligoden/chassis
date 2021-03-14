@@ -35,11 +35,10 @@ func (m *Default) structBind(s interface{}) error {
 		return fmt.Errorf("not a struct")
 	}
 
+	fmt.Println("\nBinding:")
 	for i := 0; i < t.NumField(); i++ {
 		ft := t.Field(i)
 		fv := v.Field(i)
-
-		fmt.Printf("%d. %v (%v, %v), tag: '%v'\n", i+1, ft.Name, ft.Type.Name(), ft.Type.Kind(), ft.Tag.Get("form"))
 
 		if ft.Type.Name() == "RecordDefault" {
 			err := m.structBind(fv.Addr().Interface())
@@ -50,6 +49,7 @@ func (m *Default) structBind(s interface{}) error {
 
 		if tag, got := ft.Tag.Lookup("form"); got {
 			if val := m.Request.FormValue(tag); val != "" {
+				fmt.Printf("%d. %v (%v, %v), tag: '%v'\n", i+1, ft.Name, ft.Type.Name(), ft.Type.Kind(), ft.Tag.Get("form"))
 				setType(ft.Type.Kind(), val, fv)
 			}
 		}
