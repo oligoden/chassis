@@ -85,7 +85,7 @@ func structToUpdateQ(e interface{}, q *string) ([]interface{}, error) {
 			continue
 		}
 
-		if ft.Type.Kind() == reflect.Struct {
+		if ft.Type.Kind() == reflect.Struct && ft.Type.Name() != "Time" {
 			vs, err := structToUpdateQ(fv.Addr().Interface(), q)
 			if err != nil {
 				return []interface{}{}, err

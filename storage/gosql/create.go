@@ -57,7 +57,7 @@ func reflectStruct(e interface{}, q1, q2 *string) (error, []interface{}) {
 			continue
 		}
 
-		if ft.Type.Kind() == reflect.Struct {
+		if ft.Type.Kind() == reflect.Struct && ft.Type.Name() != "Time" {
 			err, vs := reflectStruct(fv.Addr().Interface(), q1, q2)
 			if err != nil {
 				return err, []interface{}{}
