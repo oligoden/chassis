@@ -2,12 +2,14 @@ package device_test
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/oligoden/chassis/device"
 	"github.com/oligoden/chassis/device/model"
@@ -26,6 +28,7 @@ func TestCreate(t *testing.T) {
 
 	f := make(url.Values)
 	f.Set("field", "test")
+	f.Set("date", "2021-03-01 00:00:00")
 	r := httptest.NewRequest(http.MethodPost, "/api/v1/testdata", strings.NewReader(f.Encode()))
 	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	r.Header.Set("X_user", `1`)
@@ -47,8 +50,15 @@ func TestCreate(t *testing.T) {
 	if w.Code != http.StatusOK {
 		t.Errorf(`expected "%d", got "%d"`, http.StatusOK, w.Code)
 	}
+
 	exp := `"field":"test"`
 	got := w.Body.String()
+	if !strings.Contains(got, exp) {
+		t.Errorf(`expected substring "%s", got "%s"`, exp, got)
+	}
+
+	exp = `"date":"2021-03-01"`
+	got = w.Body.String()
 	if !strings.Contains(got, exp) {
 		t.Errorf(`expected substring "%s", got "%s"`, exp, got)
 	}
@@ -86,13 +96,18 @@ func TestRead(t *testing.T) {
 	}
 	defer db.Close()
 
-	q := "CREATE TABLE `testdata` (`field` varchar(255), `id` int unsigned AUTO_INCREMENT, `uc` varchar(255) UNIQUE, `owner_id` int unsigned, `perms` varchar(255), `hash` varchar(255), PRIMARY KEY (`id`))"
+	q := "CREATE TABLE `testdata` ("
+	q += " `field` varchar(255),"
+	q += " `date` DATETIME NOT NULL DEFAULT '0000-00-00',"
+	q += " `id` int unsigned AUTO_INCREMENT,"
+	q += " `uc` varchar(255) UNIQUE,"
+	q += " `owner_id` int unsigned, `perms` varchar(255), `hash` varchar(255), PRIMARY KEY (`id`))"
 	_, err = db.Exec(q)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	q = "INSERT INTO `testdata` (`field`, `uc`, `owner_id`, `perms`, `hash`) VALUES ('a', 'xx', 1, ':::', 'xyz')"
+	q = "INSERT INTO `testdata` (`field`, `date`, `uc`, `owner_id`, `perms`, `hash`) VALUES ('a', '2021-03-01', 'xx', 1, ':::', 'xyz')"
 	_, err = db.Exec(q)
 	if err != nil {
 		t.Fatal(err)
@@ -110,8 +125,15 @@ func TestRead(t *testing.T) {
 	if w.Code != http.StatusOK {
 		t.Errorf(`expected "%d", got "%d"`, http.StatusOK, w.Code)
 	}
+
 	exp := `"field":"a"`
 	got := w.Body.String()
+	if !strings.Contains(got, exp) {
+		t.Errorf(`expected substring "%s", got "%s"`, exp, got)
+	}
+
+	exp = `"date":"2021-03-01"`
+	got = w.Body.String()
 	if !strings.Contains(got, exp) {
 		t.Errorf(`expected substring "%s", got "%s"`, exp, got)
 	}
@@ -125,7 +147,12 @@ func TestUpdate(t *testing.T) {
 	}
 	defer db.Close()
 
-	q := "CREATE TABLE `testdata` (`field` varchar(255), `id` int unsigned AUTO_INCREMENT, `uc` varchar(255) UNIQUE, `owner_id` int unsigned, `perms` varchar(255), `hash` varchar(255), PRIMARY KEY (`id`))"
+	q := "CREATE TABLE `testdata` ("
+	q += " `field` varchar(255),"
+	q += " `date` DATETIME NOT NULL DEFAULT '0000-00-00',"
+	q += " `id` int unsigned AUTO_INCREMENT,"
+	q += " `uc` varchar(255) UNIQUE,"
+	q += " `owner_id` int unsigned, `perms` varchar(255), `hash` varchar(255), PRIMARY KEY (`id`))"
 	_, err = db.Exec(q)
 	if err != nil {
 		t.Fatal(err)
@@ -180,7 +207,12 @@ func TestDelete(t *testing.T) {
 	}
 	defer db.Close()
 
-	q := "CREATE TABLE `testdata` (`field` varchar(255), `id` int unsigned AUTO_INCREMENT, `uc` varchar(255) UNIQUE, `owner_id` int unsigned, `perms` varchar(255), `hash` varchar(255), PRIMARY KEY (`id`))"
+	q := "CREATE TABLE `testdata` ("
+	q += " `field` varchar(255),"
+	q += " `date` DATETIME NOT NULL DEFAULT '0000-00-00',"
+	q += " `id` int unsigned AUTO_INCREMENT,"
+	q += " `uc` varchar(255) UNIQUE,"
+	q += " `owner_id` int unsigned, `perms` varchar(255), `hash` varchar(255), PRIMARY KEY (`id`))"
 	_, err = db.Exec(q)
 	if err != nil {
 		t.Fatal(err)
@@ -282,7 +314,8 @@ func NewView(w http.ResponseWriter) *View {
 }
 
 type TestData struct {
-	Field string `form:"field" json:"field"`
+	Field string    `form:"field" json:"field"`
+	Date  time.Time `form:"date" json:"date"`
 	data.Default
 }
 
@@ -298,15 +331,31 @@ func (TestData) TableName() string {
 	return "testdata"
 }
 
-func (e *TestData) IDValue(id ...uint) uint {
-	if len(id) > 0 {
-		e.ID = id[0]
-	}
-	return e.ID
+// func (e *TestData) IDValue(id ...uint) uint {
+// 	if len(id) > 0 {
+// 		e.ID = id[0]
+// 	}
+// 	return e.ID
+// }
+
+func (e TestData) MarshalJSON() ([]byte, error) {
+	type Alias TestData
+	return json.Marshal(&struct {
+		Alias
+		Date string `json:"date"`
+	}{
+		Alias: (Alias)(e),
+		Date:  e.Date.Format("2006-01-02"),
+	})
 }
 
 func (TestData) Migrate(db *sql.DB) error {
-	q := "CREATE TABLE `testdata` (`id` int unsigned AUTO_INCREMENT, `field` varchar(255), `uc` varchar(255) UNIQUE, `owner_id` int unsigned, `perms` varchar(255), `hash` varchar(255), PRIMARY KEY (`id`))"
+	q := "CREATE TABLE `testdata` ("
+	q += " `field` varchar(255),"
+	q += " `date` DATETIME NOT NULL DEFAULT '0000-00-00',"
+	q += " `id` int unsigned AUTO_INCREMENT,"
+	q += " `uc` varchar(255) UNIQUE,"
+	q += " `owner_id` int unsigned, `perms` varchar(255), `hash` varchar(255), PRIMARY KEY (`id`))"
 	_, err := db.Exec(q)
 	if err != nil {
 		return fmt.Errorf("doing test_data migration: %w", err)

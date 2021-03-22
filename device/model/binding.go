@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"regexp"
 	"strconv"
+	"time"
 )
 
 func (m *Default) bind() error {
@@ -51,7 +52,7 @@ func (m *Default) structBind(s interface{}) error {
 			fmt.Printf("%s, tag: %s", ft.Name, tag)
 			if val := m.Request.FormValue(tag); val != "" {
 				fmt.Printf(", val: %s", val)
-				setType(ft.Type.Kind(), val, fv)
+				setType(ft.Type, val, fv)
 			}
 			fmt.Println()
 		}
@@ -59,42 +60,67 @@ func (m *Default) structBind(s interface{}) error {
 	return nil
 }
 
-func setType(kind reflect.Kind, val string, fld reflect.Value) error {
+func setType(ft reflect.Type, val string, fv reflect.Value) error {
+	kind := ft.Kind()
 
 	switch kind {
 	case reflect.Ptr:
-		return setType(fld.Elem().Kind(), val, fld.Elem())
+		return setType(fv.Elem().Type(), val, fv.Elem())
 	case reflect.Int:
-		return setIntField(val, 0, fld)
+		return setIntField(val, 0, fv)
 	case reflect.Int8:
-		return setIntField(val, 8, fld)
+		return setIntField(val, 8, fv)
 	case reflect.Int16:
-		return setIntField(val, 16, fld)
+		return setIntField(val, 16, fv)
 	case reflect.Int32:
-		return setIntField(val, 32, fld)
+		return setIntField(val, 32, fv)
 	case reflect.Int64:
-		return setIntField(val, 64, fld)
+		return setIntField(val, 64, fv)
 	case reflect.Uint:
-		return setUintField(val, 0, fld)
+		return setUintField(val, 0, fv)
 	case reflect.Uint8:
-		return setUintField(val, 8, fld)
+		return setUintField(val, 8, fv)
 	case reflect.Uint16:
-		return setUintField(val, 16, fld)
+		return setUintField(val, 16, fv)
 	case reflect.Uint32:
-		return setUintField(val, 32, fld)
+		return setUintField(val, 32, fv)
 	case reflect.Uint64:
-		return setUintField(val, 64, fld)
+		return setUintField(val, 64, fv)
 	case reflect.Bool:
-		return setBoolField(val, fld)
+		return setBoolField(val, fv)
 	case reflect.Float32:
-		return setFloatField(val, 32, fld)
+		return setFloatField(val, 32, fv)
 	case reflect.Float64:
-		return setFloatField(val, 64, fld)
+		return setFloatField(val, 64, fv)
 	case reflect.String:
-		fld.SetString(val)
+		fv.SetString(val)
+	case reflect.Struct:
+		if ft.Name() == "Time" {
+			return setTimeField(val, fv)
+		}
+		return errors.New("unknown struct type")
 	default:
 		return errors.New("unknown type")
 	}
+	return nil
+}
+
+func setTimeField(value string, field reflect.Value) error {
+	if value == "" {
+		value = "0000-00-00 00:00:00"
+	}
+
+	loc, err := time.LoadLocation("Local")
+	if err != nil {
+		return err
+	}
+
+	t, err := time.ParseInLocation("2006-01-02 15:04:05.999999", value, loc)
+	if err != nil {
+		return err
+	}
+
+	field.Set(reflect.ValueOf(t))
 	return nil
 }
 

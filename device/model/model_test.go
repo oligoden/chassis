@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/oligoden/chassis/device/model"
 	"github.com/oligoden/chassis/device/model/data"
@@ -192,7 +193,8 @@ func NewView(w http.ResponseWriter) *View {
 }
 
 type TestData struct {
-	Field string `form:"field" json:"field"`
+	Field string    `form:"field" json:"field"`
+	Date  time.Time `form:"date" json:"date"`
 	data.Default
 }
 
@@ -209,7 +211,12 @@ func (TestData) TableName() string {
 }
 
 func (TestData) Migrate(db *sql.DB) error {
-	q := "CREATE TABLE `testdata` (`field` varchar(255), `id` int unsigned AUTO_INCREMENT, `uc` varchar(255) UNIQUE, `owner_id` int unsigned, `perms` varchar(255), `hash` varchar(255), PRIMARY KEY (`id`))"
+	q := "CREATE TABLE `testdata` ("
+	q += " `field` varchar(255),"
+	q += " `date` DATETIME NOT NULL DEFAULT '0000-00-00',"
+	q += " `id` int unsigned AUTO_INCREMENT,"
+	q += " `uc` varchar(255) UNIQUE,"
+	q += " `owner_id` int unsigned, `perms` varchar(255), `hash` varchar(255), PRIMARY KEY (`id`))"
 	_, err := db.Exec(q)
 	if err != nil {
 		return fmt.Errorf("doing test_data migration: %w", err)

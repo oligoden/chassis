@@ -44,6 +44,10 @@ func reflectStruct(e interface{}, q1, q2 *string) (error, []interface{}) {
 			continue
 		}
 
+		if t.Field(i).Name == "TS" {
+			continue
+		}
+
 		ft := t.Field(i)
 		fv := v.Field(i)
 

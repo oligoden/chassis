@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/oligoden/chassis/storage/gosql"
 )
@@ -129,7 +130,12 @@ func TestCreate(t *testing.T) {
 	}
 	defer db.Close()
 
-	q := "CREATE TABLE `testdata` (`field` varchar(255), `id` int unsigned AUTO_INCREMENT, `uc` varchar(255) UNIQUE, `owner_id` int unsigned, `perms` varchar(255), `hash` varchar(255), PRIMARY KEY (`id`))"
+	q := "CREATE TABLE `testdata` ("
+	q += " `field` varchar(255),"
+	q += " `date` DATETIME NOT NULL DEFAULT '0000-00-00',"
+	q += " `id` int unsigned AUTO_INCREMENT,"
+	q += " `uc` varchar(255) UNIQUE,"
+	q += " `owner_id` int unsigned, `perms` varchar(255), `hash` varchar(255), PRIMARY KEY (`id`))"
 	_, err = db.Exec(q)
 	if err != nil {
 		t.Fatal(err)
@@ -137,6 +143,7 @@ func TestCreate(t *testing.T) {
 
 	f := make(url.Values)
 	f.Set("field", "test")
+	f.Set("date", "2021-03-01 00:00:00")
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/testdatas", strings.NewReader(f.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("X_user", "1")
@@ -159,13 +166,20 @@ func TestCreate(t *testing.T) {
 	}
 
 	var field, hash string
-	err = db.QueryRow("SELECT field,hash from testdata").Scan(&field, &hash)
+	var date time.Time
+	err = db.QueryRow("SELECT field,date,hash from testdata").Scan(&field, &date, &hash)
 	if err != nil {
 		t.Error(err)
 	}
 
 	exp := "test"
 	got := field
+	if exp != got {
+		t.Errorf(`expected "%s", got "%s"`, exp, got)
+	}
+
+	exp = "2021-03-01"
+	got = date.Format("2006-01-02")
 	if exp != got {
 		t.Errorf(`expected "%s", got "%s"`, exp, got)
 	}
