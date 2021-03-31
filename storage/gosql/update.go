@@ -108,12 +108,12 @@ func (c *Connection) Update(e storage.Operator) {
 		return
 	}
 
-	if auth, err := Authorize(e, "u", c.user, c.groups); !auth {
+	if auth, reason, err := Authorize(e, "u", c.user, c.groups); !auth {
 		if err != nil {
 			c.err = err
 			return
 		}
-		c.err = errors.New("update authorization failed")
+		c.err = errors.New("update authorization failed, " + reason)
 		return
 	}
 

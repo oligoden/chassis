@@ -87,12 +87,12 @@ func (c *Connection) Create(e storage.Operator) {
 
 	e.Owner(c.user)
 
-	if auth, err := Authorize(e, "c", c.user, c.groups); !auth {
+	if auth, reason, err := Authorize(e, "c", c.user, c.groups); !auth {
 		if err != nil {
 			c.err = err
 			return
 		}
-		c.err = errors.New("create authorization failed")
+		c.err = errors.New("create authorization failed, " + reason)
 		return
 	}
 

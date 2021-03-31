@@ -123,7 +123,7 @@ func TestAuthorization(t *testing.T) {
 			e.Groups(tC.eGroups...)
 			e.OwnerID = 1
 
-			auth, err := gosql.Authorize(e, tC.operation, tC.user, tC.groups)
+			auth, _, err := gosql.Authorize(e, tC.operation, tC.user, tC.groups)
 			if tC.expErr != "" && err == nil {
 				t.Errorf(`expected error "%s"`, tC.expErr)
 			} else if tC.expErr == "" && err != nil {
