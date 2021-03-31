@@ -2,6 +2,7 @@ package gosql
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/oligoden/chassis/storage"
@@ -42,7 +43,7 @@ func Authorize(e storage.Authenticator, p string, user uint, groups []uint) (boo
 	}
 
 	if e.Owner() != user {
-		return false, "not owner", nil
+		return false, fmt.Sprintf("not owner of record (owner:%d, user:%d)", e.Owner(), user), nil
 	}
 
 	return false, "", nil
