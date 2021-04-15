@@ -26,6 +26,7 @@ func testCleanup(t *testing.T) {
 	db.Exec("DROP TABLE record_users")
 
 	db.Exec("DROP TABLE testdata")
+	db.Exec("DROP TABLE subdata")
 }
 
 func TestNewStore(t *testing.T) {
@@ -119,7 +120,7 @@ type TestData struct {
 
 type Default struct {
 	ID       uint   `gosql:"primary_key"`
-	UC       string `gorm:"unique" json:"uc" form:"uc"`
+	UC       string `json:"uc" form:"uc"`
 	GroupIDs []uint `gosql:"-" json:"-"`
 	UserIDs  []uint `gosql:"-" json:"-"`
 	OwnerID  uint   `json:"-"`
@@ -236,45 +237,106 @@ func (e TestDataSlice) UniqueCode(uc ...string) string {
 }
 
 type SubData struct {
-	SubDataID  uint `gorm:"primary_key"`
 	TestDataID uint
 	Field      string `form:"field"`
-	UC         string `gorm:"unique"`
-	GroupIDs   []uint `gorm:"-" json:"-"`
-	UserIDs    []uint `gorm:"-" json:"-"`
-	OwnerID    uint
-	Perms      string
-	Hash       string
+	Default
 }
 
-// func (SubData) TableName() string {
-// 	return "subdata"
-// }
+func (SubData) TableName() string {
+	return "subdata"
+}
 
-// func (m *SubData) UniqueCode(uc ...string) string {
-// 	if len(uc) > 0 {
-// 		m.UC = uc[0]
-// 	}
-// 	return m.UC
-// }
+func (e *SubData) IDValue(id ...uint) uint {
+	if len(id) > 0 {
+		e.ID = id[0]
+	}
+	return e.ID
+}
 
-// func (m SubData) Permissions(p ...string) string {
-// 	return m.Perms
-// }
+func (m *SubData) UniqueCode(uc ...string) string {
+	if len(uc) > 0 {
+		m.UC = uc[0]
+	}
+	return m.UC
+}
 
-// func (m *SubData) Owner(o ...uint) uint {
-// 	if len(o) > 0 {
-// 		m.OwnerID = o[0]
-// 	}
-// 	return m.OwnerID
-// }
+func (m SubData) Permissions(p ...string) string {
+	return m.Perms
+}
 
-// func (m *SubData) Groups(g ...uint) []uint {
-// 	m.GroupIDs = append(m.GroupIDs, g...)
-// 	return m.GroupIDs
-// }
+func (m *SubData) Owner(o ...uint) uint {
+	if len(o) > 0 {
+		m.OwnerID = o[0]
+	}
+	return m.OwnerID
+}
 
-// func (m *SubData) Users(u ...uint) []uint {
-// 	m.UserIDs = append(m.UserIDs, u...)
-// 	return m.UserIDs
-// }
+func (m *SubData) Groups(g ...uint) []uint {
+	m.GroupIDs = append(m.GroupIDs, g...)
+	return m.GroupIDs
+}
+
+func (m *SubData) Users(u ...uint) []uint {
+	m.UserIDs = append(m.UserIDs, u...)
+	return m.UserIDs
+}
+
+type SubDataMap map[string]SubData
+
+func (SubDataMap) TableName() string {
+	return "subdata"
+}
+
+func (e SubDataMap) Permissions(p ...string) string {
+	return ""
+}
+
+func (e SubDataMap) Owner(o ...uint) uint {
+	return 0
+}
+
+func (e SubDataMap) Users(u ...uint) []uint {
+	return []uint{}
+}
+
+func (e SubDataMap) Groups(g ...uint) []uint {
+	return []uint{}
+}
+
+func (SubDataMap) IDValue(...uint) uint {
+	return 0
+}
+
+func (e SubDataMap) UniqueCode(uc ...string) string {
+	return ""
+}
+
+type SubDataMapID map[uint]SubData
+
+func (SubDataMapID) TableName() string {
+	return "subdata"
+}
+
+func (e SubDataMapID) Permissions(p ...string) string {
+	return ""
+}
+
+func (e SubDataMapID) Owner(o ...uint) uint {
+	return 0
+}
+
+func (e SubDataMapID) Users(u ...uint) []uint {
+	return []uint{}
+}
+
+func (e SubDataMapID) Groups(g ...uint) []uint {
+	return []uint{}
+}
+
+func (SubDataMapID) IDValue(...uint) uint {
+	return 0
+}
+
+func (e SubDataMapID) UniqueCode(uc ...string) string {
+	return ""
+}

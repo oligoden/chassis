@@ -10,23 +10,30 @@ import (
 	"github.com/oligoden/chassis/storage"
 )
 
-func (c *Connection) GenSelect(e storage.TableNamer, ps ...string) {
+func (c *Connection) GenSelect(es ...storage.TableNamer) {
 	skipAuth := false
 
-	for _, p := range ps {
-		if p == "skip-auth" {
-			skipAuth = true
-		}
-	}
+	// for _, p := range ps {
+	// 	if p == "skip-auth" {
+	// 		skipAuth = true
+	// 	}
+	// }
 
-	if !skipAuth {
-		c.ReadAuthorization(e.TableName())
+	ts := []string{}
+	tms := []interface{}{}
+	for _, e := range es {
+		if !skipAuth {
+			c.ReadAuthorization(e.TableName())
+		}
+		ts = append(ts, "%s.*")
+		tms = append(tms, e.TableName())
 	}
 
 	q, vs := c.modifiers.Compile()
 	c.values = append(c.values, vs...)
 
-	c.query = fmt.Sprintf("SELECT %s.* FROM %[1]s %s", e.TableName(), q)
+	c.query = fmt.Sprintf(strings.Join(ts, ","), tms...)
+	c.query = fmt.Sprintf("SELECT %s FROM %s %s", c.query, es[0].TableName(), q)
 }
 
 func (c *Connection) ReadAuthorization(t string, params ...string) {
@@ -42,18 +49,17 @@ func (c *Connection) ReadAuthorization(t string, params ...string) {
 	if c.user != 0 {
 		where.Or(fmt.Sprintf("%s.perms LIKE ?", t), permsA)
 
-		c.modifiers = append(c.modifiers, NewJoin(fmt.Sprintf("LEFT JOIN record_groups on record_groups.record_id = %s.hash", t)))
-
 		if len(c.groups) > 0 {
+			c.modifiers = append(c.modifiers, NewJoin(fmt.Sprintf("LEFT JOIN record_groups AS rgs_%s ON rgs_%[1]s.record_id = %[1]s.hash", t)))
 			w := NewWhere(fmt.Sprintf("%s.perms LIKE ?", t), permsG)
 			groups := strings.Trim(strings.Replace(fmt.Sprint(c.groups), " ", ",", -1), "[]")
-			w.And("record_groups.group_id IN (?)", groups)
+			w.And(fmt.Sprintf("rgs_%s.group_id IN (?)", t), groups)
 			where.OrGroup(w)
 		}
 
-		c.modifiers = append(c.modifiers, NewJoin(fmt.Sprintf("LEFT JOIN record_users on record_users.record_id = %s.hash", t)))
+		c.modifiers = append(c.modifiers, NewJoin(fmt.Sprintf("LEFT JOIN record_users AS rus_%s ON rus_%[1]s.record_id = %[1]s.hash", t)))
 		w := NewWhere(fmt.Sprintf("%s.perms LIKE ?", t), permsU)
-		w.And("record_users.user_id = ?", fmt.Sprint(c.user))
+		w.And(fmt.Sprintf("rus_%s.user_id = ?", t), fmt.Sprint(c.user))
 		where.OrGroup(w)
 
 		where.Or(fmt.Sprintf("%s.owner_id = ?", t), c.user)
@@ -62,25 +68,32 @@ func (c *Connection) ReadAuthorization(t string, params ...string) {
 	c.modifiers = append(c.modifiers, NewWhereGroup(where))
 }
 
-func (c *Connection) Read(e storage.Operator, ps ...string) {
+func (c *Connection) Read(es ...storage.Operator) {
 	if c.err != nil {
 		return
 	}
 
-	t := reflect.TypeOf(e)
-	v := reflect.ValueOf(e)
+	ts := []reflect.Type{}
+	vs := []reflect.Value{}
+	for _, e := range es {
+		t := reflect.TypeOf(e)
+		v := reflect.ValueOf(e)
 
-	if t.Kind() == reflect.Ptr {
-		t = t.Elem()
-		if t.Kind() != reflect.Struct && t.Kind() != reflect.Slice {
-			c.err = fmt.Errorf("not a struct")
+		if t.Kind() == reflect.Ptr {
+			t = t.Elem()
+			if t.Kind() != reflect.Struct && t.Kind() != reflect.Slice {
+				c.err = fmt.Errorf("not a struct")
+				return
+			}
+			v = v.Elem()
+		} else if t.Kind() == reflect.Map {
+		} else {
+			c.err = fmt.Errorf("not a pointer or map")
 			return
 		}
-		v = v.Elem()
-	} else if t.Kind() == reflect.Map {
-	} else {
-		c.err = fmt.Errorf("not a pointer or map")
-		return
+
+		ts = append(ts, t)
+		vs = append(vs, v)
 	}
 
 	db, err := sql.Open(c.store.dbt, c.store.uri)
@@ -97,8 +110,13 @@ func (c *Connection) Read(e storage.Operator, ps ...string) {
 	db.SetMaxOpenConns(5)
 	db.SetMaxIdleConns(5)
 
-	c.GenSelect(e, ps...)
+	tableNamers := make([]storage.TableNamer, len(es))
+	for i := range es {
+		tableNamers[i] = es[i]
+	}
+	c.GenSelect(tableNamers...)
 
+	fmt.Printf("\n%s\n", c.query)
 	rows, err := db.Query(c.query, c.values...)
 	if err != nil {
 		c.err = fmt.Errorf("reading from db, %w", err)
@@ -115,45 +133,72 @@ func (c *Connection) Read(e storage.Operator, ps ...string) {
 
 	nRows := 0
 	for rows.Next() {
-		tRow := t
+		tRow := ts[0]
 
-		if t.Kind() == reflect.Struct {
-			values := dbToStruct(t, v)
+		if ts[0].Kind() == reflect.Struct {
+			values := []interface{}{}
+			for i := range ts {
+				values = append(values, dbToStruct(ts[i], vs[i])...)
+			}
 			err = rows.Scan(values...)
 			if err != nil {
 				c.err = fmt.Errorf("scanning colunms, %w", err)
 			}
-		} else if t.Kind() == reflect.Map {
-			tRow = t.Elem()
-			vRow := reflect.New(tRow).Elem()
-			eRow, ok := vRow.Addr().Interface().(storage.Operator)
-			if !ok {
-				c.err = fmt.Errorf("not type storage.Operator")
-				return
+		} else if ts[0].Kind() == reflect.Map {
+			values := []interface{}{}
+			esRow := []storage.Operator{}
+			vsRow := []reflect.Value{}
+			for _, t := range ts {
+				tRow = t.Elem()
+				vRow := reflect.New(tRow).Elem()
+				eRow, ok := vRow.Addr().Interface().(storage.Operator)
+				if !ok {
+					c.err = fmt.Errorf("not type storage.Operator")
+					return
+				}
+
+				values = append(values, dbToStruct(tRow, vRow)...)
+				esRow = append(esRow, eRow)
+				vsRow = append(vsRow, vRow)
 			}
 
-			values := dbToStruct(tRow, vRow)
 			err = rows.Scan(values...)
 			if err != nil {
 				c.err = fmt.Errorf("scanning colunms, %w", err)
 			}
 
-			vUC := reflect.ValueOf(eRow.UniqueCode())
-			v.SetMapIndex(vUC, vRow)
-		} else if t.Kind() == reflect.Slice {
-			tRow = t.Elem()
-			vRow := reflect.New(tRow).Elem()
+			for i := range vs {
+				if ts[i].Key().Kind() == reflect.Uint {
+					key := reflect.ValueOf(esRow[i].IDValue())
+					vs[i].SetMapIndex(key, vsRow[i])
+				} else {
+					key := reflect.ValueOf(esRow[i].UniqueCode())
+					vs[i].SetMapIndex(key, vsRow[i])
+				}
+			}
+		} else if ts[0].Kind() == reflect.Slice {
+			values := []interface{}{}
+			vsRow := []reflect.Value{}
+			for _, t := range ts {
+				tRow = t.Elem()
+				vRow := reflect.New(tRow).Elem()
 
-			values := dbToStruct(tRow, vRow)
+				values = append(values, dbToStruct(tRow, vRow)...)
+				vsRow = append(vsRow, vRow)
+			}
+
 			err = rows.Scan(values...)
 			if err != nil {
 				c.err = fmt.Errorf("scanning colunms, %w", err)
 			}
-			v.Set(reflect.Append(v, vRow))
+
+			for i := range vs {
+				vs[i].Set(reflect.Append(vs[i], vsRow[i]))
+			}
 		}
 		nRows++
 	}
-	fmt.Printf("\n%s\nread: %d, values: %v\n", c.query, nRows, c.values)
+	fmt.Printf("read: %d, values: %v\n", nRows, c.values)
 }
 
 func dbToStruct(t reflect.Type, v reflect.Value) []interface{} {
