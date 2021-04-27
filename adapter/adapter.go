@@ -139,7 +139,7 @@ func (a Adapter) And(h http.Handler) Adapter {
 	return Adapter{
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			dw := &doneWriter{ResponseWriter: w}
-			h.ServeHTTP(w, r)
+			h.ServeHTTP(dw, r)
 			if dw.done {
 				return
 			}
