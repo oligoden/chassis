@@ -120,10 +120,29 @@ func (a Adapter) Notify() Adapter {
 	}
 }
 
+type doneWriter struct {
+	http.ResponseWriter
+	done bool
+}
+
+func (w *doneWriter) WriteHeader(status int) {
+	w.done = true
+	w.ResponseWriter.WriteHeader(status)
+}
+
+func (w *doneWriter) Write(b []byte) (int, error) {
+	w.done = true
+	return w.ResponseWriter.Write(b)
+}
+
 func (a Adapter) And(h http.Handler) Adapter {
 	return Adapter{
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			dw := &doneWriter{ResponseWriter: w}
 			h.ServeHTTP(w, r)
+			if dw.done {
+				return
+			}
 			a.Handler.ServeHTTP(w, r)
 		}),
 	}
