@@ -114,7 +114,7 @@ func (c *Connection) Create(e storage.Operator) {
 		c.logger.Log("")
 	}
 
-	fmt.Printf("\n%s\n", c.query)
+	fmt.Printf("\n%s\nvalues: %v\n", c.query, c.values)
 	result, err := c.db.Exec(c.query, c.values...)
 	if err != nil {
 		if isDuplicateUC(err) {
@@ -140,7 +140,7 @@ func (c *Connection) Create(e storage.Operator) {
 		created, _ = result.RowsAffected()
 	}
 
-	fmt.Printf("created: %d, values: %v\n", created, c.values)
+	fmt.Printf("created: %d\n", created)
 	e.IDValue(uint(id))
 }
 
