@@ -64,6 +64,10 @@ func structToUpdateQ(e interface{}, q *string) ([]interface{}, error) {
 			continue
 		}
 
+		if t.Field(i).Name == "TS" {
+			continue
+		}
+
 		if t.Field(i).Name == "OwnerID" {
 			continue
 		}
