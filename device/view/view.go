@@ -2,10 +2,12 @@ package view
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"strings"
 
+	"github.com/oligoden/chassis"
 	"github.com/oligoden/chassis/device/model"
 )
 
@@ -37,10 +39,11 @@ func (v Default) JSON(m model.Operator) {
 
 func (v Default) Error(m model.Operator) {
 	if m.Err() != nil {
-		log.Println(m.Err())
 		if strings.Contains(m.Err().Error(), "bad request") {
+			fmt.Println(m.Err())
 			v.Response.WriteHeader(http.StatusBadRequest)
 		} else {
+			fmt.Printf("ERROR\n%s\n", chassis.ErrorTrace(m.Err()))
 			v.Response.WriteHeader(http.StatusInternalServerError)
 		}
 	}
