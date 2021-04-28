@@ -149,7 +149,7 @@ func (s Store) Err() error {
 }
 
 type User struct {
-	OwnerID  uint      `gosql:"primary_key" json:"-"`
+	OwnerID  uint      `gosql:"primary_key,read-only" json:"-"`
 	UC       string    `gosql:"unique" json:"uc" form:"uc"`
 	TS       time.Time `sql:"DEFAULT:CURRENT_TIMESTAMP"`
 	Username string    `gosql:"not null" json:"username"`

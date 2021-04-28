@@ -55,6 +55,9 @@ func reflectStruct(e interface{}, q1, q2 *string) (error, []interface{}) {
 			if tag == "-" {
 				continue
 			}
+			if strings.Contains(tag, "read-only") {
+				continue
+			}
 		}
 
 		if ft.PkgPath != "" {
