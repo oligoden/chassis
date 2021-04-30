@@ -12,6 +12,7 @@ import (
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/oligoden/chassis"
 )
 
 type Store struct {
@@ -83,16 +84,20 @@ type Migrater interface {
 	Migrate(*sql.DB) error
 }
 
-func (s Store) Migrate(e Migrater) {
+func (s *Store) Migrate(e Migrater) {
+	if s.err != nil {
+		return
+	}
+
 	db, err := sql.Open(s.dbt, s.uri)
 	if err != nil {
-		s.err = fmt.Errorf("opening db connection for migration: %w", err)
+		s.err = chassis.Mark("opening db connection for migration", err)
 	}
 	defer db.Close()
 
 	err = e.Migrate(db)
 	if err != nil {
-		s.err = fmt.Errorf("migration, %w", err)
+		s.err = chassis.Mark("running db migration", err)
 	}
 }
 
