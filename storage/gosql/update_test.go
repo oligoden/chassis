@@ -21,13 +21,13 @@ func TestGenUpdate(t *testing.T) {
 	c.GenUpdate(e)
 	q, vs := c.Query()
 
-	exp := "UPDATE testdata SET field = ?, hash = ? WHERE id = ?"
+	exp := "UPDATE testdata SET field = ?, date = ?, hash = ? WHERE id = ?"
 	got := q
 	if exp != got {
 		t.Errorf(`expected "%s", got "%s"`, exp, got)
 	}
 
-	exp = "[b abc 1]"
+	exp = "[b 1000-01-01 00:00:00 +0000 UTC abc 1]"
 	got = fmt.Sprintf("%v", vs)
 	if exp != got {
 		t.Errorf(`expected "%s", got "%s"`, exp, got)
@@ -43,7 +43,15 @@ func TestUpdate(t *testing.T) {
 	}
 	defer db.Close()
 
-	q := "CREATE TABLE `testdata` (`field` varchar(255), `id` int unsigned AUTO_INCREMENT, `uc` varchar(255) UNIQUE, `owner_id` int unsigned, `perms` varchar(255), `hash` varchar(255), PRIMARY KEY (`id`))"
+	q := "CREATE TABLE `testdata` ("
+	q += "`field` varchar(255),"
+	q += "`date` DATETIME NOT NULL DEFAULT '1000-01-01',"
+	q += "`id` int unsigned AUTO_INCREMENT,"
+	q += "`uc` varchar(255) UNIQUE,"
+	q += "`owner_id` int unsigned,"
+	q += "`perms` varchar(255),"
+	q += "`hash` varchar(255),"
+	q += "PRIMARY KEY (`id`))"
 	_, err = db.Exec(q)
 	if err != nil {
 		t.Fatal(err)

@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/oligoden/chassis"
 	"github.com/oligoden/chassis/storage"
 )
 
@@ -36,7 +37,7 @@ func reflectStruct(e interface{}, q1, q2 *string) (error, []interface{}) {
 	v := reflect.ValueOf(e).Elem()
 
 	if t.Kind() != reflect.Struct {
-		return fmt.Errorf("not a struct"), []interface{}{}
+		return chassis.Mark("not a struct"), []interface{}{}
 	}
 
 	for i := 0; i < t.NumField(); i++ {
@@ -67,14 +68,25 @@ func reflectStruct(e interface{}, q1, q2 *string) (error, []interface{}) {
 		if ft.Type.Kind() == reflect.Struct && ft.Type.Name() != "Time" {
 			err, vs := reflectStruct(fv.Addr().Interface(), q1, q2)
 			if err != nil {
-				return err, []interface{}{}
+				return chassis.Mark("reflecting struct", err), []interface{}{}
 			}
 			values = append(values, vs...)
 			continue
 		}
 
-		values = append(values, fv.Interface())
+		if ft.Type.Name() == "Time" {
+			v := fv.Interface().(time.Time)
+			if v.IsZero() {
+				v = time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC)
+			}
+			values = append(values, v)
+			*q1 = *q1 + sep + ToSnakeCase(ft.Name)
+			*q2 = *q2 + sep + "?"
+			sep = ", "
+			continue
+		}
 
+		values = append(values, fv.Interface())
 		*q1 = *q1 + sep + ToSnakeCase(ft.Name)
 		*q2 = *q2 + sep + "?"
 		sep = ", "

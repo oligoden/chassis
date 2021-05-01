@@ -4,13 +4,14 @@ import (
 	"database/sql"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/oligoden/chassis/storage/gosql"
 )
 
 const (
 	dbt = "mysql"
-	uri = "chassis:password@tcp(localhost:3309)/chassis?charset=utf8&parseTime=True&loc=Local&parseTime=true"
+	uri = "chassis:password@tcp(localhost:3309)/chassis?charset=utf8&parseTime=True&loc=UTC&parseTime=true"
 )
 
 func testCleanup(t *testing.T) {
@@ -113,6 +114,7 @@ func TestNewStore(t *testing.T) {
 type TestData struct {
 	Field         string `form:"field"`
 	field         string
+	Date          time.Time `form:"date"`
 	SubData       []SubData `gosql:"-"`
 	Many2ManyData []SubData `gosql:"-"`
 	Default
@@ -133,7 +135,15 @@ func (TestData) TableName() string {
 }
 
 func (TestData) Migrate(db *sql.DB) error {
-	q := "CREATE TABLE `testdata` (`id` int unsigned AUTO_INCREMENT, `field` varchar(255), `uc` varchar(255) UNIQUE, `owner_id` int unsigned, `perms` varchar(255), `hash` varchar(255), PRIMARY KEY (`id`))"
+	q := "CREATE TABLE `testdata` ("
+	q += "`id` int unsigned AUTO_INCREMENT,"
+	q += "`field` varchar(255),"
+	q += "`date` DATETIME NOT NULL DEFAULT '1000-01-01',"
+	q += "`uc` varchar(255) UNIQUE,"
+	q += "`owner_id` int unsigned,"
+	q += "`perms` varchar(255),"
+	q += "`hash` varchar(255),"
+	q += "PRIMARY KEY (`id`))"
 	_, err := db.Exec(q)
 	if err != nil {
 		return fmt.Errorf("doing test_data migration: %w", err)

@@ -42,7 +42,15 @@ func TestDelete(t *testing.T) {
 	}
 	defer db.Close()
 
-	q := "CREATE TABLE `testdata` (`field` varchar(255), `id` int unsigned AUTO_INCREMENT, `uc` varchar(255) UNIQUE, `owner_id` int unsigned, `perms` varchar(255), `hash` varchar(255), PRIMARY KEY (`id`))"
+	q := "CREATE TABLE `testdata` ("
+	q += "`field` varchar(255),"
+	q += "`date` DATETIME NOT NULL DEFAULT '1000-01-01',"
+	q += "`id` int unsigned AUTO_INCREMENT,"
+	q += "`uc` varchar(255) UNIQUE,"
+	q += "`owner_id` int unsigned,"
+	q += "`perms` varchar(255),"
+	q += "`hash` varchar(255),"
+	q += "PRIMARY KEY (`id`))"
 	_, err = db.Exec(q)
 	if err != nil {
 		t.Fatal(err)

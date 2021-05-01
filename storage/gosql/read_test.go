@@ -114,8 +114,23 @@ func TestReadRecord(t *testing.T) {
 	}
 	defer db.Close()
 
-	db.Exec("CREATE TABLE `testdata` (`field` varchar(255), `id` int unsigned AUTO_INCREMENT, `uc` varchar(255) UNIQUE, `owner_id` int unsigned, `perms` varchar(255), `hash` varchar(255), PRIMARY KEY (`id`))")
-	db.Exec("INSERT INTO `testdata` (`field`, `uc`, `owner_id`, `perms`, `hash`) VALUES ('a', 'xx', 1, ':::', 'xyz')")
+	q := "CREATE TABLE `testdata` ("
+	q += "`field` varchar(255),"
+	q += "`date` DATETIME NOT NULL DEFAULT '1000-01-01',"
+	q += "`id` int unsigned AUTO_INCREMENT,"
+	q += "`uc` varchar(255) UNIQUE,"
+	q += "`owner_id` int unsigned,"
+	q += "`perms` varchar(255),"
+	q += "`hash` varchar(255),"
+	q += "PRIMARY KEY (`id`))"
+	_, err = db.Exec(q)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = db.Exec("INSERT INTO `testdata` (`field`, `uc`, `owner_id`, `perms`, `hash`) VALUES ('a', 'xx', 1, ':::', 'xyz')")
+	if err != nil {
+		t.Fatal(err)
+	}
 	db.Exec("CREATE TABLE `subdata` (`test_data_id` int unsigned, `field` varchar(255), `id` int unsigned AUTO_INCREMENT, `uc` varchar(255) UNIQUE, `owner_id` int unsigned, `perms` varchar(255), `hash` varchar(255), PRIMARY KEY (`id`))")
 	db.Exec("INSERT INTO `subdata` (`test_data_id`, `field`, `uc`, `owner_id`, `perms`, `hash`) VALUES (1, 'b', 'yy', 1, ':::', 'ijk')")
 
@@ -130,7 +145,7 @@ func TestReadRecord(t *testing.T) {
 		t.Error(c.Err())
 	}
 
-	exp := "{a  [] [] {1 xx [] [] 1 ::: xyz}}"
+	exp := "{a  1000-01-01 00:00:00 +0000 UTC [] [] {1 xx [] [] 1 ::: xyz}}"
 	got := fmt.Sprint(e)
 	if exp != got {
 		t.Errorf(`expected "%s", got "%s"`, exp, got)
@@ -152,7 +167,19 @@ func TestReadMap(t *testing.T) {
 	}
 	defer db.Close()
 
-	db.Exec("CREATE TABLE `testdata` (`field` varchar(255), `id` int unsigned AUTO_INCREMENT, `uc` varchar(255) UNIQUE, `owner_id` int unsigned, `perms` varchar(255), `hash` varchar(255), PRIMARY KEY (`id`))")
+	q := "CREATE TABLE `testdata` ("
+	q += "`field` varchar(255),"
+	q += "`date` DATETIME NOT NULL DEFAULT '1000-01-01',"
+	q += "`id` int unsigned AUTO_INCREMENT,"
+	q += "`uc` varchar(255) UNIQUE,"
+	q += "`owner_id` int unsigned,"
+	q += "`perms` varchar(255),"
+	q += "`hash` varchar(255),"
+	q += "PRIMARY KEY (`id`))"
+	_, err = db.Exec(q)
+	if err != nil {
+		t.Fatal(err)
+	}
 	db.Exec("INSERT INTO `testdata` (`field`, `uc`, `owner_id`, `perms`, `hash`) VALUES ('a', 'xx', 1, ':::', 'xyz')")
 	db.Exec("INSERT INTO `testdata` (`field`, `uc`, `owner_id`, `perms`, `hash`) VALUES ('b', 'yy', 1, ':::', 'jkl')")
 	db.Exec("CREATE TABLE `subdata` (`test_data_id` int unsigned, `field` varchar(255), `id` int unsigned AUTO_INCREMENT, `uc` varchar(255) UNIQUE, `owner_id` int unsigned, `perms` varchar(255), `hash` varchar(255), PRIMARY KEY (`id`))")
@@ -171,7 +198,7 @@ func TestReadMap(t *testing.T) {
 		t.Error(c.Err())
 	}
 
-	exp := "map[xx:{a  [] [] {1 xx [] [] 1 ::: xyz}} yy:{b  [] [] {2 yy [] [] 1 ::: jkl}}]"
+	exp := "map[xx:{a  1000-01-01 00:00:00 +0000 UTC [] [] {1 xx [] [] 1 ::: xyz}} yy:{b  1000-01-01 00:00:00 +0000 UTC [] [] {2 yy [] [] 1 ::: jkl}}]"
 	got := fmt.Sprint(e)
 	if exp != got {
 		t.Errorf(`expected "%s", got "%s"`, exp, got)
@@ -193,7 +220,19 @@ func TestReadMapID(t *testing.T) {
 	}
 	defer db.Close()
 
-	db.Exec("CREATE TABLE `testdata` (`field` varchar(255), `id` int unsigned AUTO_INCREMENT, `uc` varchar(255) UNIQUE, `owner_id` int unsigned, `perms` varchar(255), `hash` varchar(255), PRIMARY KEY (`id`))")
+	q := "CREATE TABLE `testdata` ("
+	q += "`field` varchar(255),"
+	q += "`date` DATETIME NOT NULL DEFAULT '1000-01-01',"
+	q += "`id` int unsigned AUTO_INCREMENT,"
+	q += "`uc` varchar(255) UNIQUE,"
+	q += "`owner_id` int unsigned,"
+	q += "`perms` varchar(255),"
+	q += "`hash` varchar(255),"
+	q += "PRIMARY KEY (`id`))"
+	_, err = db.Exec(q)
+	if err != nil {
+		t.Fatal(err)
+	}
 	db.Exec("INSERT INTO `testdata` (`field`, `uc`, `owner_id`, `perms`, `hash`) VALUES ('a', 'xx', 1, ':::', 'xyz')")
 	db.Exec("INSERT INTO `testdata` (`field`, `uc`, `owner_id`, `perms`, `hash`) VALUES ('b', 'yy', 1, ':::', 'jkl')")
 	db.Exec("CREATE TABLE `subdata` (`test_data_id` int unsigned, `field` varchar(255), `id` int unsigned AUTO_INCREMENT, `uc` varchar(255) UNIQUE, `owner_id` int unsigned, `perms` varchar(255), `hash` varchar(255), PRIMARY KEY (`id`))")
@@ -212,7 +251,7 @@ func TestReadMapID(t *testing.T) {
 		t.Error(c.Err())
 	}
 
-	exp := "map[xx:{a  [] [] {1 xx [] [] 1 ::: xyz}} yy:{b  [] [] {2 yy [] [] 1 ::: jkl}}]"
+	exp := "map[xx:{a  1000-01-01 00:00:00 +0000 UTC [] [] {1 xx [] [] 1 ::: xyz}} yy:{b  1000-01-01 00:00:00 +0000 UTC [] [] {2 yy [] [] 1 ::: jkl}}]"
 	got := fmt.Sprint(e)
 	if exp != got {
 		t.Errorf(`expected "%s", got "%s"`, exp, got)
@@ -234,7 +273,15 @@ func TestReadSlice(t *testing.T) {
 	}
 	defer db.Close()
 
-	q := "CREATE TABLE `testdata` (`field` varchar(255), `id` int unsigned AUTO_INCREMENT, `uc` varchar(255) UNIQUE, `owner_id` int unsigned, `perms` varchar(255), `hash` varchar(255), PRIMARY KEY (`id`))"
+	q := "CREATE TABLE `testdata` ("
+	q += "`field` varchar(255),"
+	q += "`date` DATETIME NOT NULL DEFAULT '1000-01-01',"
+	q += "`id` int unsigned AUTO_INCREMENT,"
+	q += "`uc` varchar(255) UNIQUE,"
+	q += "`owner_id` int unsigned,"
+	q += "`perms` varchar(255),"
+	q += "`hash` varchar(255),"
+	q += "PRIMARY KEY (`id`))"
 	_, err = db.Exec(q)
 	if err != nil {
 		t.Fatal(err)
@@ -261,7 +308,7 @@ func TestReadSlice(t *testing.T) {
 		t.Error(c.Err())
 	}
 
-	exp := "[{a  [] [] {1 xx [] [] 1 ::: xyz}} {b  [] [] {2 yy [] [] 1 ::: jkl}}]"
+	exp := "[{a  1000-01-01 00:00:00 +0000 UTC [] [] {1 xx [] [] 1 ::: xyz}} {b  1000-01-01 00:00:00 +0000 UTC [] [] {2 yy [] [] 1 ::: jkl}}]"
 	got := fmt.Sprint(e)
 	if exp != got {
 		t.Errorf(`expected "%s", got "%s"`, exp, got)

@@ -98,6 +98,17 @@ func structToUpdateQ(e interface{}, q *string) ([]interface{}, error) {
 			continue
 		}
 
+		if ft.Type.Name() == "Time" {
+			v := fv.Interface().(time.Time)
+			if v.IsZero() {
+				v = time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC)
+			}
+			values = append(values, v)
+			*q = *q + sep + ToSnakeCase(ft.Name) + " = ?"
+			sep = ", "
+			continue
+		}
+
 		values = append(values, fv.Interface())
 
 		*q = *q + sep + ToSnakeCase(ft.Name) + " = ?"
