@@ -107,7 +107,7 @@ func setType(ft reflect.Type, val string, fv reflect.Value) error {
 
 func setTimeField(value string, field reflect.Value) error {
 	if value == "" {
-		value = "0000-00-00 00:00:00"
+		value = "1000-01-01 00:00:00"
 	}
 
 	loc, err := time.LoadLocation("Local")
