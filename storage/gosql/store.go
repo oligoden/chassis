@@ -97,6 +97,9 @@ func (s *Store) Migrate(e Migrater) {
 
 	err = e.Migrate(db)
 	if err != nil {
+		if strings.Contains(err.Error(), "already exists") {
+			return
+		}
 		s.err = chassis.Mark("running db migration", err)
 	}
 }
