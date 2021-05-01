@@ -117,7 +117,10 @@ func setTimeField(value string, field reflect.Value) error {
 
 	t, err := time.ParseInLocation("2006-01-02 15:04:05.999999", value, loc)
 	if err != nil {
-		return err
+		t, err = time.ParseInLocation("2006-01-02", value, loc)
+		if err != nil {
+			return err
+		}
 	}
 
 	field.Set(reflect.ValueOf(t))
