@@ -4,17 +4,16 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
+	"strings"
 
 	"xojoc.pw/useragent"
 )
 
 type Adapter struct {
 	Handler http.Handler
-}
-
-func (a Adapter) Entry() http.Handler {
-	return a.Handler
+	Host    string
 }
 
 type loggingResponseWriter struct {
@@ -29,6 +28,42 @@ func NewLoggingResponseWriter(w http.ResponseWriter) *loggingResponseWriter {
 func (lrw *loggingResponseWriter) WriteHeader(code int) {
 	lrw.statusCode = code
 	lrw.ResponseWriter.WriteHeader(code)
+}
+
+func New(host string) Adapter {
+	return Adapter{
+		Host: host,
+	}
+}
+
+func Core(h http.Handler) Adapter {
+	return Adapter{
+		Handler: h,
+	}
+}
+
+func MNA() Adapter {
+	return Adapter{
+		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+		}),
+	}
+}
+
+func (a Adapter) Core(h http.Handler) Adapter {
+	return Adapter{
+		Handler: h,
+		Host:    a.Host,
+	}
+}
+
+func (a Adapter) MNA() Adapter {
+	return Adapter{
+		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+		}),
+		Host: a.Host,
+	}
 }
 
 func (a Adapter) Notify() Adapter {
@@ -117,6 +152,7 @@ func (a Adapter) Notify() Adapter {
 
 			fmt.Printf(text, params...)
 		}),
+		Host: a.Host,
 	}
 }
 
@@ -145,6 +181,7 @@ func (a Adapter) And(h http.Handler) Adapter {
 			}
 			a.Handler.ServeHTTP(w, r)
 		}),
+		Host: a.Host,
 	}
 }
 
@@ -157,6 +194,7 @@ func (a Adapter) Get(h http.Handler) Adapter {
 				a.Handler.ServeHTTP(w, r)
 			}
 		}),
+		Host: a.Host,
 	}
 }
 
@@ -169,6 +207,7 @@ func (a Adapter) Post(h http.Handler) Adapter {
 				a.Handler.ServeHTTP(w, r)
 			}
 		}),
+		Host: a.Host,
 	}
 }
 
@@ -181,6 +220,7 @@ func (a Adapter) Put(h http.Handler) Adapter {
 				a.Handler.ServeHTTP(w, r)
 			}
 		}),
+		Host: a.Host,
 	}
 }
 
@@ -193,19 +233,48 @@ func (a Adapter) Delete(h http.Handler) Adapter {
 				a.Handler.ServeHTTP(w, r)
 			}
 		}),
+		Host: a.Host,
 	}
 }
 
-func Core(h http.Handler) Adapter {
-	return Adapter{
-		Handler: h,
-	}
-}
-
-func MNA() Adapter {
+func (a Adapter) SubDomain(h http.Handler, rules ...string) Adapter {
 	return Adapter{
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.WriteHeader(http.StatusMethodNotAllowed)
+			if r.Host == a.Host {
+				a.Handler.ServeHTTP(w, r)
+				return
+			}
+			log.Println("requested host", r.Host)
+			subdomain := strings.TrimSuffix(r.Host, a.Host)
+
+			for _, rule := range rules {
+				if rule == "" {
+					continue
+				}
+
+				if strings.HasPrefix(rule, "!") && subdomain == rule[1:] {
+					a.Handler.ServeHTTP(w, r)
+					return
+				}
+			}
+
+			for _, rule := range rules {
+				if rule == "" {
+					continue
+				}
+
+				if !strings.HasPrefix(rule, "!") && subdomain == rule {
+					h.ServeHTTP(w, r)
+					return
+				}
+			}
+
+			h.ServeHTTP(w, r)
 		}),
+		Host: a.Host,
 	}
+}
+
+func (a Adapter) Entry() http.Handler {
+	return a.Handler
 }
