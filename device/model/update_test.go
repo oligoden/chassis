@@ -38,7 +38,7 @@ func TestUpdate(t *testing.T) {
 
 	f := make(url.Values)
 	f.Set("field", "test")
-	req := httptest.NewRequest(http.MethodPut, "/api/v1/testdatas", strings.NewReader(f.Encode()))
+	req := httptest.NewRequest(http.MethodPut, "/testdatas", strings.NewReader(f.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("X_user", "1")
 	req.Header.Set("X_session", "1")

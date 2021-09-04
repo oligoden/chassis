@@ -10,7 +10,7 @@ import (
 )
 
 func (m *Default) bind() error {
-	rgx, _ := regexp.Compile("^/api/v[0-9]+/[a-z]+(/?|/(([a-zA-Z0-9]+)(/?|/.*)))$")
+	rgx, _ := regexp.Compile("^/[a-z]+(/?|/(([a-zA-Z0-9]+)(/?|/.*)))$")
 	matches := rgx.FindStringSubmatch(m.Request.URL.Path)
 
 	if len(matches) == 0 {

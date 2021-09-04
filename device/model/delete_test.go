@@ -38,7 +38,7 @@ func TestDelete(t *testing.T) {
 
 	f := make(url.Values)
 	f.Set("field", "test")
-	req := httptest.NewRequest(http.MethodDelete, "/api/v1/testdatas/xx", strings.NewReader(f.Encode()))
+	req := httptest.NewRequest(http.MethodDelete, "/testdatas/xx", strings.NewReader(f.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("X_user", "1")
 	req.Header.Set("X_session", "1")
