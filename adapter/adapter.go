@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"strings"
 
-	"xojoc.pw/useragent"
+	useragent "github.com/mssola/user_agent"
 )
 
 type Adapter struct {
@@ -72,30 +72,31 @@ func (a Adapter) Notify() Adapter {
 			params := []interface{}{r.Method, r.URL.String(), r.RemoteAddr}
 			text := "--> %s %s from %s\n"
 
-			ua := useragent.Parse(r.UserAgent())
-			switch ua.Type {
-			case 0:
-				params = append(params, "unknown")
-			case 1:
-				params = append(params, "browser")
-			case 2:
-				params = append(params, "crawler")
-			default:
-				params = append(params, "other")
+			ua := useragent.New(r.UserAgent())
+
+			if ua != nil {
+				if ua.Bot() {
+					params = append(params, "bot")
+				} else {
+					params = append(params, "browser")
+				}
+
+				name, version := ua.Browser()
+				params = append(params, name)
+				params = append(params, version)
+				params = append(params, ua.Platform())
+				params = append(params, ua.OS())
+
+				if ua.Mobile() {
+					params = append(params, "mobile")
+				} else {
+					params = append(params, "desktop")
+				}
+
+				text = text + "--- client: %s %s %s, OS: %s %s, device: %s\n"
+			} else {
+				text = text + "--- client: unknown\n"
 			}
-			params = append(params, ua.Name)
-			params = append(params, ua.Version)
-			params = append(params, ua.OS)
-			params = append(params, ua.OSVersion)
-			device := "computer"
-			if ua.Mobile {
-				device = "mobile"
-			}
-			if ua.Tablet {
-				device = "tablet"
-			}
-			params = append(params, device)
-			text = text + "--- client: %s %s %s, OS: %s %s, device: %s\n"
 
 			buf, _ := ioutil.ReadAll(r.Body)
 			r.Body = ioutil.NopCloser(bytes.NewBuffer(buf))
