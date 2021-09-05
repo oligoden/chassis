@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/oligoden/chassis"
 	"github.com/oligoden/chassis/storage"
 )
 
@@ -123,13 +124,13 @@ func (c *Connection) Read(es ...storage.Operator) {
 		return
 	}
 
-	// cols, err := rows.Columns()
-	// if err != nil {
-	// 	c.err = fmt.Errorf("getting row columns, %w", err)
-	// 	return
-	// }
+	cols, err := rows.Columns()
+	if err != nil {
+		c.err = fmt.Errorf("getting row columns, %w", err)
+		return
+	}
 
-	// fmt.Println("cols", cols)
+	fmt.Println("cols", cols)
 
 	nRows := 0
 	for rows.Next() {
@@ -142,7 +143,7 @@ func (c *Connection) Read(es ...storage.Operator) {
 			}
 			err = rows.Scan(values...)
 			if err != nil {
-				c.err = fmt.Errorf("scanning colunms, %w", err)
+				c.err = chassis.Mark("scanning colunms", err)
 			}
 		} else if ts[0].Kind() == reflect.Map {
 			values := []interface{}{}

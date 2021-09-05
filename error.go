@@ -7,16 +7,19 @@ import (
 	"time"
 )
 
-type ChassisError struct {
+type Error struct {
 	TS       time.Time
 	Message  string
 	Function string
 	File     string
 	Line     uint
+	ID       string
+	Context  map[string]string
+	System   string
 	Child    error
 }
 
-func (e ChassisError) Error() string {
+func (e Error) Error() string {
 	return fmt.Sprintf("%s (%s:%d)", e.Message, e.File, e.Line)
 }
 
@@ -31,12 +34,12 @@ func ErrorTrace(err error) string {
 	return e
 }
 
-func (e ChassisError) Unwrap() error {
+func (e Error) Unwrap() error {
 	return e.Child
 }
 
 func Mark(msg string, errs ...error) error {
-	e := ChassisError{}
+	e := Error{}
 
 	if len(errs) > 0 {
 		e.Child = errs[0]
