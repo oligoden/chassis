@@ -77,7 +77,7 @@ func TestBindUserNoUserError(t *testing.T) {
 	}
 
 	m.BindUser()
-	exp := `strconv.Atoi: parsing "": invalid syntax`
+	exp := `X_user not set`
 	got := m.Err().Error()
 	if !strings.Contains(got, exp) {
 		t.Errorf(`expected "%s", got "%s"`, exp, got)
@@ -93,7 +93,7 @@ func TestBindUserNotUserIntError(t *testing.T) {
 	}
 
 	m.BindUser()
-	exp := `strconv.Atoi: parsing "a": invalid syntax`
+	exp := `user binding X_user`
 	got := m.Err().Error()
 	if !strings.Contains(got, exp) {
 		t.Errorf(`expected "%s", got "%s"`, exp, got)
@@ -109,7 +109,7 @@ func TestBindUserNoSessionError(t *testing.T) {
 	}
 
 	m.BindUser()
-	exp := `strconv.Atoi: parsing "": invalid syntax`
+	exp := `X_session not set`
 	got := m.Err().Error()
 	if !strings.Contains(got, exp) {
 		t.Errorf(`expected "%s", got "%s"`, exp, got)
@@ -126,7 +126,7 @@ func TestBindNotSessionIntError(t *testing.T) {
 	}
 
 	m.BindUser()
-	exp := `strconv.Atoi: parsing "a": invalid syntax`
+	exp := `session binding X_session`
 	got := m.Err().Error()
 	if !strings.Contains(got, exp) {
 		t.Errorf(`expected "%s", got "%s"`, exp, got)
@@ -144,7 +144,7 @@ func TestBindNotGroupIntError(t *testing.T) {
 	}
 
 	m.BindUser()
-	exp := `strconv.Atoi: parsing "a": invalid syntax`
+	exp := `user binding X_user_groups`
 	got := m.Err().Error()
 	if !strings.Contains(got, exp) {
 		t.Errorf(`expected "%s", got "%s"`, exp, got)

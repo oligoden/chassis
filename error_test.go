@@ -1,48 +1,25 @@
 package chassis_test
 
 import (
-	"regexp"
+	"fmt"
 	"testing"
 
 	"github.com/oligoden/chassis"
+
+	"github.com/stretchr/testify/assert"
 )
 
-var err error = chassis.Mark("msg")
-var err2 error = chassis.Mark("next", err)
+var err1 error = chassis.Mark("msg")
+var err2 error = chassis.Mark("next", err1)
 
-func TestSingleError(t *testing.T) {
-	exp := "(?s)msg (.*error_test.go:10)"
-	got := err.Error()
-	if m, err := regexp.MatchString(exp, got); !m || err != nil {
-		if err != nil {
-			t.Error(err)
-		}
-		if !m {
-			t.Errorf("mismatch\nexpected %s\ngot %s", exp, got)
-		}
-	}
-}
+var err3 error = fmt.Errorf("msg")
+var err4 error = chassis.Mark("next", err3)
 
-func TestStackError(t *testing.T) {
-	exp := "(?s)next (.*error_test.go:11)"
-	got := err2.Error()
-	if m, err := regexp.MatchString(exp, got); !m || err != nil {
-		if err != nil {
-			t.Error(err)
-		}
-		if !m {
-			t.Errorf("mismatch\nexpected %s\ngot %s", exp, got)
-		}
-	}
-
-	exp = "(?s)msg (.*error_test.go:10)..next (.*error_test.go:11)"
-	got = chassis.ErrorTrace(err2)
-	if m, err := regexp.MatchString(exp, got); !m || err != nil {
-		if err != nil {
-			t.Error(err)
-		}
-		if !m {
-			t.Errorf("mismatch\nexpected %s\ngot\n%s", exp, got)
-		}
-	}
+func TestError(t *testing.T) {
+	assert.Contains(t, err1.Error(), "msg")
+	assert.Contains(t, err1.Error(), "error_test.go:12")
+	assert.Contains(t, err2.Error(), "next")
+	assert.Contains(t, err2.Error(), "error_test.go:13")
+	assert.Contains(t, chassis.ErrorTrace(err2), "error_test.go:13")
+	t.Error(chassis.ErrorTrace(err4))
 }

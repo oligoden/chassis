@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/oligoden/chassis"
 	"github.com/oligoden/chassis/device/model/data"
 	"github.com/oligoden/chassis/storage"
 	"github.com/oligoden/chassis/storage/gosql"
@@ -73,17 +74,25 @@ func (m *Default) BindUser() {
 	}
 
 	u := m.Request.Header.Get("X_user")
+	if u == "" {
+		m.Err(chassis.Mark("X_user not set, expected >= 0"))
+	}
+
 	user, err := strconv.Atoi(u)
 	if err != nil {
-		m.Err(fmt.Errorf("user binding X_user, %w", err))
+		m.Err(chassis.Mark("user binding X_user", err))
 		return
 	}
 	m.user = uint(user)
 
 	s := m.Request.Header.Get("X_session")
+	if s == "" {
+		m.Err(chassis.Mark("X_session not set"))
+	}
+
 	sesh, err := strconv.Atoi(s)
 	if err != nil {
-		m.Err(fmt.Errorf("session binding X_session, %w", err))
+		m.Err(chassis.Mark("session binding X_session", err))
 		return
 	}
 	m.sesh = uint(sesh)
@@ -92,7 +101,7 @@ func (m *Default) BindUser() {
 		for _, g := range strings.Split(m.Request.Header.Get("X_user_groups"), ",") {
 			group, err := strconv.Atoi(g)
 			if err != nil {
-				m.Err(fmt.Errorf("user binding X_user_groups, %w", err))
+				m.Err(chassis.Mark("user binding X_user_groups", err))
 				return
 			}
 			m.groups = append(m.groups, uint(group))
