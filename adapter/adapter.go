@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"strings"
 
@@ -245,7 +244,8 @@ func (a Adapter) SubDomain(h http.Handler, rules ...string) Adapter {
 				a.Handler.ServeHTTP(w, r)
 				return
 			}
-			log.Println("requested host", r.Host)
+
+			fmt.Println("requested host", r.Host, "on domain", a.Host)
 			subdomain := strings.TrimSuffix(r.Host, a.Host)
 
 			for _, rule := range rules {
