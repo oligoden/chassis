@@ -247,13 +247,15 @@ func (a Adapter) SubDomain(h http.Handler, rules ...string) Adapter {
 
 			fmt.Println("requested host", r.Host, "on domain", a.Host)
 			subdomain := strings.TrimSuffix(r.Host, a.Host)
+			subdomain = strings.TrimSuffix(subdomain, ".")
 
 			for _, rule := range rules {
 				if rule == "" {
 					continue
 				}
 
-				if strings.HasPrefix(rule, "!") && subdomain == rule[1:] {
+				if strings.HasPrefix(rule, "-") && subdomain == rule[1:] {
+					fmt.Println("ignoring by rule", rule)
 					a.Handler.ServeHTTP(w, r)
 					return
 				}
@@ -264,7 +266,8 @@ func (a Adapter) SubDomain(h http.Handler, rules ...string) Adapter {
 					continue
 				}
 
-				if !strings.HasPrefix(rule, "!") && subdomain == rule {
+				if !strings.HasPrefix(rule, "-") && subdomain == rule {
+					fmt.Println("rerouting by rule", rule)
 					h.ServeHTTP(w, r)
 					return
 				}
