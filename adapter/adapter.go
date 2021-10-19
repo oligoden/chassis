@@ -49,6 +49,22 @@ func MNA() Adapter {
 	}
 }
 
+func MethodNotAllowed() Adapter {
+	return Adapter{
+		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+		}),
+	}
+}
+
+func NotFound() Adapter {
+	return Adapter{
+		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusNotFound)
+		}),
+	}
+}
+
 func (a Adapter) Core(h http.Handler) Adapter {
 	return Adapter{
 		Handler: h,
