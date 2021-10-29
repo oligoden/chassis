@@ -223,6 +223,7 @@ func (a Adapter) Get(h http.Handler) Adapter {
 	return Adapter{
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if r.Method == http.MethodGet {
+				fmt.Println("--- executing GET handler")
 				h.ServeHTTP(w, r)
 			} else {
 				a.Handler.ServeHTTP(w, r)
@@ -236,6 +237,7 @@ func (a Adapter) Post(h http.Handler) Adapter {
 	return Adapter{
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if r.Method == http.MethodPost {
+				fmt.Println("--- executing POST handler")
 				h.ServeHTTP(w, r)
 			} else {
 				a.Handler.ServeHTTP(w, r)
@@ -249,6 +251,7 @@ func (a Adapter) Put(h http.Handler) Adapter {
 	return Adapter{
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if r.Method == http.MethodPut {
+				fmt.Println("--- executing PUT handler")
 				h.ServeHTTP(w, r)
 			} else {
 				a.Handler.ServeHTTP(w, r)
@@ -262,6 +265,7 @@ func (a Adapter) Delete(h http.Handler) Adapter {
 	return Adapter{
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if r.Method == http.MethodDelete {
+				fmt.Println("--- executing DELETE handler")
 				h.ServeHTTP(w, r)
 			} else {
 				a.Handler.ServeHTTP(w, r)
