@@ -99,7 +99,7 @@ func (a Adapter) NotFound() Adapter {
 	}
 }
 
-func (a Adapter) Notify() Adapter {
+func (a Adapter) Notify(msg ...string) Adapter {
 	return Adapter{
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			params := []interface{}{r.Method, r.URL.String(), r.RemoteAddr}
@@ -162,6 +162,9 @@ func (a Adapter) Notify() Adapter {
 			fmt.Printf(text, params...)
 
 			lw := NewLoggingResponseWriter(w)
+			if len(msg) > 0 {
+				fmt.Println("---", msg[0])
+			}
 			a.Handler.ServeHTTP(lw, r)
 
 			params = []interface{}{lw.statusCode}
