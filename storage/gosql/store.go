@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -24,10 +25,10 @@ type Store struct {
 	rnd              *rand.Rand
 }
 
-func New(dbt, uri string) *Store {
+func New(uri string) *Store {
 	s := new(Store)
 
-	db, err := sql.Open(dbt, uri)
+	db, err := sql.Open("mysql", uri)
 	if err != nil {
 		s.err = fmt.Errorf("opening db connection for new store migration: %w", err)
 		return s
@@ -37,7 +38,7 @@ func New(dbt, uri string) *Store {
 	db.SetMaxOpenConns(10)
 	db.SetMaxIdleConns(10)
 
-	s.dbt = dbt
+	s.dbt = "mysql"
 	s.uri = uri
 
 	s.uniqueCodeLength = 2
@@ -78,6 +79,36 @@ func New(dbt, uri string) *Store {
 	}
 
 	return s
+}
+
+func ConnURL(serviceName ...string) string {
+	pre := ""
+
+	if len(serviceName) >= 1 {
+		pre = strings.ToUpper(serviceName[0])
+		if !strings.HasSuffix(pre, "_") {
+			pre = pre + "_"
+		}
+	}
+
+	dbUser := os.Getenv(pre + "DB_USER")
+	dbPass := os.Getenv(pre + "DB_PASS")
+	dbAddr := os.Getenv(pre + "DB_ADDR")
+	dbPort := os.Getenv(pre + "DB_PORT")
+	dbName := os.Getenv(pre + "DB_NAME")
+
+	if dbAddr == "" {
+		dbAddr = "localhost"
+	}
+
+	if dbPort == "" {
+		dbPort = "3306"
+	}
+
+	params := "charset=utf8&parseTime=True&loc=Local"
+	format := "%s:%s@tcp(%s:%s)/%s?%s"
+
+	return fmt.Sprintf(format, dbUser, dbPass, dbAddr, dbPort, dbName, params)
 }
 
 type Migrater interface {

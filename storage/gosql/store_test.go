@@ -3,10 +3,12 @@ package gosql_test
 import (
 	"database/sql"
 	"fmt"
+	"os"
 	"testing"
 	"time"
 
 	"github.com/oligoden/chassis/storage/gosql"
+	"github.com/stretchr/testify/assert"
 )
 
 const (
@@ -30,10 +32,35 @@ func testCleanup(t *testing.T) {
 	db.Exec("DROP TABLE subdata")
 }
 
+func TestDBConnSetup(t *testing.T) {
+	os.Setenv("DB_NAME", "name")
+	os.Setenv("DB_USER", "user")
+	os.Setenv("DB_PASS", "pass")
+
+	uri := gosql.ConnURL()
+	assert.Equal(t, "user:pass@tcp(localhost:3306)/name?charset=utf8&parseTime=True&loc=Local", uri)
+
+	os.Setenv("DB_ADDR", "test")
+	os.Setenv("DB_PORT", "0000")
+
+	uri = gosql.ConnURL()
+	assert.Equal(t, "user:pass@tcp(test:0000)/name?charset=utf8&parseTime=True&loc=Local", uri)
+
+	uri = gosql.ConnURL("test")
+	assert.Equal(t, ":@tcp(localhost:3306)/?charset=utf8&parseTime=True&loc=Local", uri)
+
+	os.Setenv("TEST_DB_NAME", "name")
+	os.Setenv("TEST_DB_USER", "user")
+	os.Setenv("TEST_DB_PASS", "pass")
+
+	uri = gosql.ConnURL("test")
+	assert.Equal(t, "user:pass@tcp(localhost:3306)/name?charset=utf8&parseTime=True&loc=Local", uri)
+}
+
 func TestNewStore(t *testing.T) {
 	testCleanup(t)
 
-	s := gosql.New(dbt, uri)
+	s := gosql.New(uri)
 
 	usersExist := false
 	groupsExist := false

@@ -71,7 +71,7 @@ func TestUpdate(t *testing.T) {
 
 	e := &TestData{}
 
-	s := gosql.New(dbt, uri)
+	s := gosql.New(uri)
 	c := s.Connect(1, []uint{})
 	w := gosql.NewWhere("uc = ?", "yy")
 	c.AddModifiers(w)

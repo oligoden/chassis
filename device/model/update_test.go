@@ -43,7 +43,7 @@ func TestUpdate(t *testing.T) {
 	req.Header.Set("X_user", "1")
 	req.Header.Set("X_session", "1")
 
-	s := gosql.New(dbt, uri)
+	s := gosql.New(uri)
 	m := NewModel(req, s)
 	e := &TestData{}
 	m.Data(e)

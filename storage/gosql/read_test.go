@@ -134,7 +134,7 @@ func TestReadRecord(t *testing.T) {
 	db.Exec("CREATE TABLE `subdata` (`test_data_id` int unsigned, `field` varchar(255), `id` int unsigned AUTO_INCREMENT, `uc` varchar(255) UNIQUE, `owner_id` int unsigned, `perms` varchar(255), `hash` varchar(255), PRIMARY KEY (`id`))")
 	db.Exec("INSERT INTO `subdata` (`test_data_id`, `field`, `uc`, `owner_id`, `perms`, `hash`) VALUES (1, 'b', 'yy', 1, ':::', 'ijk')")
 
-	s := gosql.New(dbt, uri)
+	s := gosql.New(uri)
 	c := s.Connect(1, []uint{})
 	join := gosql.NewJoin("JOIN `subdata` ON `subdata`.`test_data_id` = `testdata`.`id`")
 	c.AddModifiers(join)
@@ -186,7 +186,7 @@ func TestReadMap(t *testing.T) {
 	db.Exec("INSERT INTO `subdata` (`test_data_id`, `field`, `uc`, `owner_id`, `perms`, `hash`) VALUES (1, 'c', 'zz', 1, ':::', 'cvb')")
 	db.Exec("INSERT INTO `subdata` (`test_data_id`, `field`, `uc`, `owner_id`, `perms`, `hash`) VALUES (2, 'd', 'ff', 1, ':::', 'rty')")
 
-	s := gosql.New(dbt, uri)
+	s := gosql.New(uri)
 	c := s.Connect(1, []uint{})
 	join := gosql.NewJoin("JOIN `subdata` ON `subdata`.`test_data_id` = `testdata`.`id`")
 	c.AddModifiers(join)
@@ -239,7 +239,7 @@ func TestReadMapID(t *testing.T) {
 	db.Exec("INSERT INTO `subdata` (`test_data_id`, `field`, `uc`, `owner_id`, `perms`, `hash`) VALUES (1, 'c', 'zz', 1, ':::', 'cvb')")
 	db.Exec("INSERT INTO `subdata` (`test_data_id`, `field`, `uc`, `owner_id`, `perms`, `hash`) VALUES (2, 'd', 'ff', 1, ':::', 'rty')")
 
-	s := gosql.New(dbt, uri)
+	s := gosql.New(uri)
 	c := s.Connect(1, []uint{})
 	join := gosql.NewJoin("JOIN `subdata` ON `subdata`.`test_data_id` = `testdata`.`id`")
 	c.AddModifiers(join)
@@ -299,7 +299,7 @@ func TestReadSlice(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	s := gosql.New(dbt, uri)
+	s := gosql.New(uri)
 	c := s.Connect(1, []uint{})
 	e := TestDataSlice{}
 	c.Read(&e)
@@ -322,7 +322,7 @@ func TestReadSlice(t *testing.T) {
 
 func TestReadUser(t *testing.T) {
 	testCleanup(t)
-	s := gosql.New(dbt, uri)
+	s := gosql.New(uri)
 
 	db, err := sql.Open(dbt, uri)
 	if err != nil {

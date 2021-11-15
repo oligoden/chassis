@@ -62,7 +62,7 @@ func TestDelete(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	s := gosql.New(dbt, uri)
+	s := gosql.New(uri)
 	c := s.Connect(1, []uint{})
 
 	e := &TestData{}

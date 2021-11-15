@@ -58,7 +58,7 @@ func TestCreate(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	s := gosql.New(dbt, uri)
+	s := gosql.New(uri)
 	e := &TestData{}
 	e.Field = "test"
 	e.Perms = ":::c"
@@ -85,7 +85,7 @@ func TestCreate(t *testing.T) {
 func TestUniqueCodeGeneration(t *testing.T) {
 	testCleanup(t)
 
-	s := gosql.New(dbt, uri)
+	s := gosql.New(uri)
 
 	s.UniqueCodeFunc(func(c uint) string {
 		var a string
