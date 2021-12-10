@@ -279,13 +279,13 @@ func (a Adapter) Delete(h http.Handler) Adapter {
 func (a Adapter) SubDomain(h http.Handler, rules ...string) Adapter {
 	return Adapter{
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if r.Host == a.Host {
+			if r.Host == a.mx.URL.Hostname() {
 				a.Handler.ServeHTTP(w, r)
 				return
 			}
 
-			fmt.Println("requested host", r.Host, "on domain", a.Host)
-			subdomain := strings.TrimSuffix(r.Host, a.Host)
+			fmt.Println("requested host", r.Host, "on domain", a.mx.URL.Hostname())
+			subdomain := strings.TrimSuffix(r.Host, a.mx.URL.Hostname())
 			subdomain = strings.TrimSuffix(subdomain, ".")
 
 			for _, rule := range rules {
