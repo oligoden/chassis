@@ -293,13 +293,13 @@ func (a Adapter) Delete(h http.Handler) Adapter {
 func (a Adapter) SubDomain(h http.Handler, rules ...string) Adapter {
 	return Adapter{
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if r.Host == a.mx.URL.Hostname() {
+			if r.URL.Hostname() == a.mx.URL.Hostname() {
 				a.Handler.ServeHTTP(w, r)
 				return
 			}
 
-			fmt.Println("requested host", r.Host, "on domain", a.mx.URL.Hostname())
-			subdomain := strings.TrimSuffix(r.Host, a.mx.URL.Hostname())
+			fmt.Printf("\n--- requested %s on %s\n", r.URL.Hostname(), a.mx.URL.Hostname())
+			subdomain := strings.TrimSuffix(r.URL.Hostname(), a.mx.URL.Hostname())
 			subdomain = strings.TrimSuffix(subdomain, ".")
 
 			for _, rule := range rules {
@@ -345,9 +345,8 @@ func (a Adapter) CORS() Adapter {
 }
 
 func (a Adapter) Entry() http.Handler {
-	fmt.Println("debug", a.pattern)
 	if a.pattern != "" {
-		fmt.Println("registring", a.pattern)
+		fmt.Println("registering", a.pattern)
 		a.mx.Mux.Handle(a.pattern, a.Handler)
 	}
 	return a.Handler
