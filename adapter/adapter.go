@@ -13,6 +13,8 @@ import (
 type Adapter struct {
 	Handler http.Handler
 	Host    string
+	mx      *Mux
+	pattern string
 }
 
 type loggingResponseWriter struct {
@@ -68,7 +70,6 @@ func NotFound() Adapter {
 func (a Adapter) Core(h http.Handler) Adapter {
 	return Adapter{
 		Handler: h,
-		Host:    a.Host,
 	}
 }
 
@@ -77,7 +78,6 @@ func (a Adapter) MNA() Adapter {
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusMethodNotAllowed)
 		}),
-		Host: a.Host,
 	}
 }
 
@@ -86,7 +86,6 @@ func (a Adapter) MethodNotAllowed() Adapter {
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusMethodNotAllowed)
 		}),
-		Host: a.Host,
 	}
 }
 
@@ -95,7 +94,6 @@ func (a Adapter) NotFound() Adapter {
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusNotFound)
 		}),
-		Host: a.Host,
 	}
 }
 
@@ -189,7 +187,7 @@ func (a Adapter) Notify(msg ...string) Adapter {
 
 			fmt.Printf(text, params...)
 		}),
-		Host: a.Host,
+		mx: a.mx,
 	}
 }
 
@@ -218,7 +216,7 @@ func (a Adapter) And(h http.Handler) Adapter {
 			}
 			a.Handler.ServeHTTP(w, r)
 		}),
-		Host: a.Host,
+		mx: a.mx,
 	}
 }
 
@@ -232,7 +230,7 @@ func (a Adapter) Get(h http.Handler) Adapter {
 				a.Handler.ServeHTTP(w, r)
 			}
 		}),
-		Host: a.Host,
+		mx: a.mx,
 	}
 }
 
@@ -246,7 +244,7 @@ func (a Adapter) Post(h http.Handler) Adapter {
 				a.Handler.ServeHTTP(w, r)
 			}
 		}),
-		Host: a.Host,
+		mx: a.mx,
 	}
 }
 
@@ -260,7 +258,7 @@ func (a Adapter) Put(h http.Handler) Adapter {
 				a.Handler.ServeHTTP(w, r)
 			}
 		}),
-		Host: a.Host,
+		mx: a.mx,
 	}
 }
 
@@ -274,7 +272,7 @@ func (a Adapter) Delete(h http.Handler) Adapter {
 				a.Handler.ServeHTTP(w, r)
 			}
 		}),
-		Host: a.Host,
+		mx: a.mx,
 	}
 }
 
@@ -316,10 +314,23 @@ func (a Adapter) SubDomain(h http.Handler, rules ...string) Adapter {
 
 			h.ServeHTTP(w, r)
 		}),
-		Host: a.Host,
+		mx: a.mx,
+	}
+}
+
+func (a Adapter) CORS() Adapter {
+	return Adapter{
+		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Access-Control-Allow-Origin", a.mx.URL.String())
+			a.Handler.ServeHTTP(w, r)
+		}),
+		mx: a.mx,
 	}
 }
 
 func (a Adapter) Entry() http.Handler {
+	if a.pattern != "" {
+		a.mx.Mux.Handle(a.pattern, a.Handler)
+	}
 	return a.Handler
 }

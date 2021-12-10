@@ -2,6 +2,7 @@ package adapter
 
 import (
 	"net/http"
+	"net/url"
 
 	"github.com/oligoden/chassis/storage/gosql"
 )
@@ -9,8 +10,10 @@ import (
 type Mux struct {
 	Mux    *http.ServeMux
 	Domain string
+	URL    *url.URL
 	Stores map[string]*gosql.Store
 	RPDs   []string
+	Err    error
 }
 
 func NewMux() *Mux {
@@ -23,6 +26,17 @@ func NewMux() *Mux {
 
 func (mx *Mux) SetDomain(domain string) *Mux {
 	mx.Domain = domain
+	return mx
+}
+
+func (mx *Mux) SetURL(us string) *Mux {
+	u, err := url.Parse(us)
+	if err != nil {
+		mx.Err = err
+		return mx
+	}
+
+	mx.URL = u
 	return mx
 }
 
@@ -43,4 +57,19 @@ func (mx *Mux) Compile(hs func(*Mux)) *http.ServeMux {
 
 func (mx *Mux) ServeMux() *http.ServeMux {
 	return mx.Mux
+}
+
+func (mx *Mux) Adapter() Adapter {
+	return Adapter{
+		Host: mx.URL.Hostname(),
+		mx:   mx,
+	}
+}
+
+func (mx *Mux) Handle(pattern string) Adapter {
+	return Adapter{
+		Host:    mx.URL.Hostname(),
+		pattern: pattern,
+		mx:      mx,
+	}
 }
