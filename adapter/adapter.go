@@ -330,6 +330,7 @@ func (a Adapter) CORS() Adapter {
 
 func (a Adapter) Entry() http.Handler {
 	if a.pattern != "" {
+		fmt.Println("registring", a.pattern)
 		a.mx.Mux.Handle(a.pattern, a.Handler)
 	}
 	return a.Handler
