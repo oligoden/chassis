@@ -3,12 +3,10 @@ package adapter_test
 import (
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"testing"
 
 	"github.com/oligoden/chassis/adapter"
 	"github.com/steinfletcher/apitest"
-	"github.com/stretchr/testify/assert"
 )
 
 var Mux func(*adapter.Mux) = func(m *adapter.Mux) {
@@ -32,17 +30,13 @@ var Mux func(*adapter.Mux) = func(m *adapter.Mux) {
 }
 
 func Test(t *testing.T) {
-	assert := assert.New(t)
-	var err error
-
 	mux := adapter.NewMux().
-		SetURL("https://test.com:8080").
+		SetURL("http://test.com:8080").
 		Compile(Mux)
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	req.URL, err = url.Parse("http://test.com/")
-	assert.NoError(err)
 
+	req.Host = "test.com:8080"
 	apitest.New().
 		Handler(mux).
 		HttpRequest(req).
@@ -51,18 +45,7 @@ func Test(t *testing.T) {
 		Body("<html></html>").
 		End()
 
-	req.URL, err = url.Parse("http://test.com:8080/")
-	assert.NoError(err)
-	apitest.New().
-		Handler(mux).
-		HttpRequest(req).
-		Expect(t).
-		Status(http.StatusOK).
-		Body("<html></html>").
-		End()
-
-	req.URL, err = url.Parse("http://subdomain.test.com/")
-	assert.NoError(err)
+	req.Host = "staging.test.com:8080"
 	apitest.New().
 		Handler(mux).
 		HttpRequest(req).
