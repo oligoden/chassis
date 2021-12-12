@@ -337,6 +337,7 @@ func (a Adapter) CORS() Adapter {
 	return Adapter{
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Access-Control-Allow-Origin", a.mx.URL.String())
+			w.Header().Set("Access-Control-Allow-Credentials", "true")
 			a.Handler.ServeHTTP(w, r)
 		}),
 		mx:      a.mx,

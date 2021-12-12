@@ -10,23 +10,10 @@ import (
 )
 
 var Mux func(*adapter.Mux) = func(m *adapter.Mux) {
-	// s := m.Stores["mysqldb"]
-
-	// dRouting := routing.NewDevice(s, m.RPDs...)
-	// s.Migrate(routing.NewRecord())
-
 	m.Handle("/").
 		Core(adapter.ServeFile("static/index.html")).
 		SubDomain(adapter.ServeFile("static/subdomain.html"), "-api").
-		// And(dSession.Authenticate()).
-		Notify().Entry()
-
-	// m.Handle("/profiles").
-	// 	NotFound().
-	// 	SubDomain(dRouting.Check(), "api").
-	// 	And(dSession.CreateUser()).
-	// 	And(dSession.Authenticate()).
-	// 	CORS().Notify().Entry()
+		CORS().Notify().Entry()
 }
 
 func Test(t *testing.T) {
@@ -51,6 +38,8 @@ func Test(t *testing.T) {
 		HttpRequest(req).
 		Expect(t).
 		Status(http.StatusOK).
+		HeaderPresent("Access-Control-Allow-Origin").
+		HeaderPresent("Access-Control-Allow-Credentials").
 		Body("<html>subdomain</html>").
 		End()
 }
