@@ -336,9 +336,13 @@ func (a Adapter) SubDomain(h http.Handler, rules ...string) Adapter {
 func (a Adapter) CORS() Adapter {
 	return Adapter{
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Access-Control-Allow-Origin", a.mx.URL.String())
-			w.Header().Set("Access-Control-Allow-Credentials", "true")
 			a.Handler.ServeHTTP(w, r)
+			if w.Header().Get("Access-Control-Allow-Origin") == "" {
+				w.Header().Set("Access-Control-Allow-Origin", a.mx.URL.String())
+			}
+			if w.Header().Get("Access-Control-Allow-Credentials") == "" {
+				w.Header().Set("Access-Control-Allow-Credentials", "true")
+			}
 		}),
 		mx:      a.mx,
 		pattern: a.pattern,
