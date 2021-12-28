@@ -173,13 +173,13 @@ func (a Adapter) Notify(msg ...string) Adapter {
 			}
 			a.Handler.ServeHTTP(lw, r)
 
-			fmt.Println("--- Access-Control-Allow-Origin:", w.Header().Get("Access-Control-Allow-Origin"))
-			fmt.Println("--- Access-Control-Allow-Credentials:", w.Header().Get("Access-Control-Allow-Credentials"))
+			fmt.Println("--- Access-Control-Allow-Origin:", lw.Header().Get("Access-Control-Allow-Origin"))
+			fmt.Println("--- Access-Control-Allow-Credentials:", lw.Header().Get("Access-Control-Allow-Credentials"))
 
 			params = []interface{}{lw.statusCode}
 			text = "<-- %d"
-			user = w.Header().Get("X_user")
-			session = w.Header().Get("X_session")
+			user = lw.Header().Get("X_user")
+			session = lw.Header().Get("X_session")
 			if user != "" || session != "" {
 				text = text + ", "
 				if user != "" {
@@ -339,7 +339,6 @@ func (a Adapter) SubDomain(h http.Handler, rules ...string) Adapter {
 func (a Adapter) CORS() Adapter {
 	return Adapter{
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			a.Handler.ServeHTTP(w, r)
 			if w.Header().Get("Access-Control-Allow-Credentials") == "" {
 				w.Header().Set("Access-Control-Allow-Credentials", "true")
 				fmt.Printf("--- added CORS credentials header \"true\"\n")
@@ -348,6 +347,7 @@ func (a Adapter) CORS() Adapter {
 				w.Header().Set("Access-Control-Allow-Origin", a.mx.URL.String())
 				fmt.Printf("\n--- added CORS origin header \"%s\"\n", a.mx.URL.String())
 			}
+			a.Handler.ServeHTTP(w, r)
 		}),
 		mx:      a.mx,
 		pattern: a.pattern,
