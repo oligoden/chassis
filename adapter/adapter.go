@@ -109,7 +109,7 @@ func (a Adapter) Notify(msg ...string) Adapter {
 	return Adapter{
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			params := []interface{}{r.Method, r.URL.String(), r.RemoteAddr}
-			text := "--> %s %s from %s\n"
+			text := "\n--> %s %s from %s\n"
 
 			ua := useragent.New(r.UserAgent())
 
@@ -339,15 +339,15 @@ func (a Adapter) SubDomain(h http.Handler, rules ...string) Adapter {
 func (a Adapter) CORS() Adapter {
 	return Adapter{
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if w.Header().Get("Access-Control-Allow-Credentials") == "" {
-				w.Header().Set("Access-Control-Allow-Credentials", "true")
-				fmt.Printf("--- added CORS credentials header \"true\"\n")
-			}
+			a.Handler.ServeHTTP(w, r)
 			if w.Header().Get("Access-Control-Allow-Origin") == "" {
 				w.Header().Set("Access-Control-Allow-Origin", a.mx.URL.String())
 				fmt.Printf("\n--- added CORS origin header \"%s\"\n", a.mx.URL.String())
 			}
-			a.Handler.ServeHTTP(w, r)
+			if w.Header().Get("Access-Control-Allow-Credentials") == "" {
+				w.Header().Set("Access-Control-Allow-Credentials", "true")
+				fmt.Printf("--- added CORS credentials header \"true\"\n")
+			}
 		}),
 		mx:      a.mx,
 		pattern: a.pattern,
