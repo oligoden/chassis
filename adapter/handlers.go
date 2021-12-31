@@ -7,3 +7,7 @@ func ServeFile(f string) http.Handler {
 		http.ServeFile(w, r, f)
 	})
 }
+
+func ServeFiles(p, d string) http.Handler {
+	return http.StripPrefix(p, http.FileServer(http.Dir(d)))
+}
