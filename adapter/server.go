@@ -84,7 +84,7 @@ func ServeTLS(mux *http.ServeMux) {
 
 	domains := strings.FieldsFunc(os.Getenv("ALLOW"), split)
 	for _, domain := range domains {
-		cert, err := tls.LoadX509KeyPair(domain+".crt", domain+".key")
+		cert, err := tls.LoadX509KeyPair("certs/certificates/"+domain+".crt", "certs/certificates/"+domain+".key")
 		if err != nil {
 			e := fmt.Errorf("loading certificate for domain %s -> %w", domain, err)
 			fmt.Println(e)
