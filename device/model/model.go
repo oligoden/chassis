@@ -106,6 +106,10 @@ func (m *Default) BindUser(usg ...uint) {
 		m.groups = append(m.groups, usg[2:]...)
 	}
 
+	if m.Request == nil {
+		return
+	}
+
 	if m.Request.Header.Get("X_user_groups") != "" {
 		for _, g := range strings.Split(m.Request.Header.Get("X_user_groups"), ",") {
 			group, err := strconv.Atoi(g)
