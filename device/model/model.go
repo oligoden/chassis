@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"math/rand"
 	"net/http"
 	"strconv"
@@ -63,39 +62,49 @@ func (m Default) Session() uint {
 	return m.sesh
 }
 
-func (m *Default) BindUser() {
+func (m *Default) BindUser(usg ...uint) {
 	if m.Err() != nil {
 		return
 	}
 
-	if m.Request == nil {
-		log.Println("request not set")
+	if len(usg) == 0 && m.Request == nil {
+		fmt.Println("no user set")
 		return
 	}
 
-	u := m.Request.Header.Get("X_user")
-	if u == "" {
-		m.Err(chassis.Mark("X_user not set, expected >= 0"))
+	if len(usg) >= 1 {
+		m.user = usg[0]
+	} else {
+		u := m.Request.Header.Get("X_user")
+		if u == "" {
+			m.Err(chassis.Mark("X_user not set, expected >= 0"))
+		}
+		user, err := strconv.Atoi(u)
+		if err != nil {
+			m.Err(chassis.Mark("user binding X_user", err))
+			return
+		}
+		m.user = uint(user)
 	}
 
-	user, err := strconv.Atoi(u)
-	if err != nil {
-		m.Err(chassis.Mark("user binding X_user", err))
-		return
+	if len(usg) >= 2 {
+		m.sesh = usg[1]
+	} else {
+		s := m.Request.Header.Get("X_session")
+		if s == "" {
+			m.Err(chassis.Mark("X_session not set"))
+		}
+		sesh, err := strconv.Atoi(s)
+		if err != nil {
+			m.Err(chassis.Mark("session binding X_session", err))
+			return
+		}
+		m.sesh = uint(sesh)
 	}
-	m.user = uint(user)
 
-	s := m.Request.Header.Get("X_session")
-	if s == "" {
-		m.Err(chassis.Mark("X_session not set"))
+	if len(usg) >= 3 {
+		m.groups = append(m.groups, usg[2:]...)
 	}
-
-	sesh, err := strconv.Atoi(s)
-	if err != nil {
-		m.Err(chassis.Mark("session binding X_session", err))
-		return
-	}
-	m.sesh = uint(sesh)
 
 	if m.Request.Header.Get("X_user_groups") != "" {
 		for _, g := range strings.Split(m.Request.Header.Get("X_user_groups"), ",") {
