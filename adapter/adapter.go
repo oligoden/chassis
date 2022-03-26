@@ -173,6 +173,7 @@ func (a Adapter) Notify(msg ...string) Adapter {
 			}
 			a.Handler.ServeHTTP(lw, r)
 
+			fmt.Println()
 			fmt.Println("--< Access-Control-Allow-Origin:", lw.Header().Get("Access-Control-Allow-Origin"))
 			fmt.Println("--< Access-Control-Allow-Credentials:", lw.Header().Get("Access-Control-Allow-Credentials"))
 
