@@ -73,6 +73,11 @@ func (mx *Mux) Compile(hs func(*Mux)) *http.ServeMux {
 	return mx.Mux
 }
 
+func (mx *Mux) Register(hs func(*Mux)) *Mux {
+	hs(mx)
+	return mx
+}
+
 func (mx *Mux) ServeMux() *http.ServeMux {
 	return mx.Mux
 }
