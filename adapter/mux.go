@@ -169,14 +169,16 @@ func (mx *Mux) serve() {
 	log.Println("running http server")
 	select {
 	case err := <-serverError:
-		fmt.Println(chassis.Mark("http server error", err))
+		e := chassis.Mark("http server error", err)
+		fmt.Println(chassis.ErrorTrace(e))
 		for _, grpcServer := range mx.GRPCServers {
 			grpcServer.GracefulStop()
 		}
 		time.Sleep(100 * time.Millisecond)
 		os.Exit(1)
 	case gerr := <-grpcServerError:
-		fmt.Println(chassis.Mark("grpc server error", gerr.e))
+		e := chassis.Mark("grpc server error", gerr.e)
+		fmt.Println(chassis.ErrorTrace(e))
 		shutdown(httpServer)
 		for i, grpcServer := range mx.GRPCServers {
 			if i != gerr.i {
