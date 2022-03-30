@@ -121,7 +121,7 @@ func (mx *Mux) serve() {
 		os.Exit(1)
 	}
 
-	addr := fmt.Sprintf(":%d", port)
+	addr := fmt.Sprintf(":%s", port)
 	if addr == "" {
 		addr = ":8080"
 	}
@@ -166,7 +166,7 @@ func (mx *Mux) serve() {
 	quit := make(chan os.Signal)
 	signal.Notify(quit, os.Interrupt)
 
-	log.Println("running http server")
+	log.Println("started servers")
 	select {
 	case err := <-serverError:
 		e := chassis.Mark("http server error", err)
