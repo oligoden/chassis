@@ -117,11 +117,7 @@ type grpcError struct {
 }
 
 func (mx *Mux) serve() {
-	_, port, err := net.SplitHostPort(mx.URL.Host)
-	if err != nil {
-		fmt.Println(chassis.Mark("getting port to serve", err))
-		os.Exit(1)
-	}
+	_, port, _ := net.SplitHostPort(mx.URL.Host)
 
 	addr := fmt.Sprintf(":%s", port)
 	if addr == "" {
@@ -200,17 +196,6 @@ func (mx *Mux) serve() {
 }
 
 func (mx *Mux) serveTLS() {
-	_, port, err := net.SplitHostPort(mx.URL.Host)
-	if err != nil {
-		fmt.Println(chassis.Mark("getting port to serve", err))
-		os.Exit(1)
-	}
-
-	addr := fmt.Sprintf(":%s", port)
-	if addr == "" {
-		addr = ":8080"
-	}
-
 	httpServer := &http.Server{
 		Addr: ":80",
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
