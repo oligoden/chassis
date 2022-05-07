@@ -21,6 +21,7 @@ type Mux struct {
 	Mux         *http.ServeMux
 	Domain      string
 	URL         *url.URL
+	StaticDir   string
 	Stores      map[string]*gosql.Store
 	RPDs        []string
 	GRPCServers []*grpc.Server
@@ -31,6 +32,7 @@ type Mux struct {
 func NewMux() *Mux {
 	return &Mux{
 		Mux:         http.NewServeMux(),
+		StaticDir:   "static",
 		Stores:      map[string]*gosql.Store{},
 		RPDs:        []string{},
 		GRPCServers: []*grpc.Server{},
@@ -40,6 +42,11 @@ func NewMux() *Mux {
 
 func (mx *Mux) SetDomain(domain string) *Mux {
 	mx.Domain = domain
+	return mx
+}
+
+func (mx *Mux) SetStaticDir(dir string) *Mux {
+	mx.StaticDir = dir
 	return mx
 }
 
