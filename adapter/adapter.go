@@ -298,6 +298,19 @@ func (a Adapter) SubDomain(h http.Handler, rules ...string) Adapter {
 	return Adapter{
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if r.Host == a.mx.URL.Host {
+				for _, rule := range rules {
+					if rule == "" {
+						continue
+					}
+
+					// the use of "-" is deprecated
+					if strings.HasPrefix(rule, "-") || strings.HasPrefix(rule, "!") {
+						fmt.Println("rerouting by rule", rule)
+						h.ServeHTTP(w, r)
+						return
+					}
+				}
+
 				a.Handler.ServeHTTP(w, r)
 				return
 			}
@@ -311,7 +324,8 @@ func (a Adapter) SubDomain(h http.Handler, rules ...string) Adapter {
 					continue
 				}
 
-				if strings.HasPrefix(rule, "-") && subdomain == rule[1:] {
+				// the use of "-" is deprecated
+				if (strings.HasPrefix(rule, "-") || strings.HasPrefix(rule, "!")) && subdomain == rule[1:] {
 					fmt.Println("ignoring by rule", rule)
 					a.Handler.ServeHTTP(w, r)
 					return
@@ -323,7 +337,8 @@ func (a Adapter) SubDomain(h http.Handler, rules ...string) Adapter {
 					continue
 				}
 
-				if !strings.HasPrefix(rule, "-") && subdomain == rule {
+				// the use of "-" is deprecated
+				if !(strings.HasPrefix(rule, "-") || strings.HasPrefix(rule, "!")) && subdomain == rule {
 					fmt.Println("rerouting by rule", rule)
 					h.ServeHTTP(w, r)
 					return
