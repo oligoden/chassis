@@ -294,6 +294,27 @@ func (a Adapter) Delete(h http.Handler) Adapter {
 	}
 }
 
+func (a Adapter) Options(ms ...string) Adapter {
+	return Adapter{
+		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Method == http.MethodOptions {
+				fmt.Println("--- executing OPTIONS handler")
+				if w.Header().Get("Access-Control-Allow-Origin") == "" {
+					w.Header().Set("Access-Control-Allow-Origin", a.mx.URL.String())
+				}
+				w.Header().Set("Connection", "keep-alive")
+				w.Header().Set("Access-Control-Allow-Methods", strings.Join(ms, ","))
+				w.Header().Set("Access-Control-Max-Age", "86400")
+				w.WriteHeader(http.StatusNoContent)
+			} else {
+				a.Handler.ServeHTTP(w, r)
+			}
+		}),
+		mx:      a.mx,
+		pattern: a.pattern,
+	}
+}
+
 func (a Adapter) SubDomain(h http.Handler, rules ...string) Adapter {
 	return Adapter{
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
