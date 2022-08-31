@@ -1,0 +1,20 @@
+syntax = "proto3";
+package lateral;
+option go_package = "github.com/oligoden/chassis/lateral";
+
+import "google/protobuf/timestamp.proto";
+
+message QueueMessage {
+  message Query {
+    string UC = 1;
+    google.protobuf.Timestamp TS = 2;
+	  string Instance = 3;
+    string Query    = 4;
+    bytes Confirms = 5;
+  }
+  repeated Query GroupIDs = 1;
+}
+
+service SyncQueue {
+  rpc Queue(QueueMessage) returns (QueueMessage) {}
+}
