@@ -14,11 +14,6 @@ import (
 	"github.com/oligoden/chassis/device/view"
 )
 
-const (
-	dbt = "mysql"
-	uri = "chassis:password@tcp(localhost:3309)/chassis?charset=utf8&parseTime=True&loc=Local"
-)
-
 func TestDataSetting(t *testing.T) {
 	e := &TestData{}
 	m := &Model{}
@@ -176,9 +171,16 @@ func NewModel(r *http.Request, s model.Connector) *Model {
 	m.Request = r
 	m.Store = s
 	m.BindUser()
-	m.NewData = func() data.Operator { return NewTestData() }
 	m.Data(NewTestData())
 	return m
+}
+
+func (m *Model) NewData(ds ...string) {
+	if len(ds) > 0 {
+		if ds[0] == "list" {
+			m.Data(NewTestDataList())
+		}
+	}
 }
 
 type View struct {
@@ -224,12 +226,57 @@ func (TestData) Migrate(db *sql.DB) error {
 	return nil
 }
 
-func testCleanup(t *testing.T) {
-	db, err := sql.Open(dbt, uri)
+type TestDataList map[string]TestData
+
+func NewTestDataList() TestDataList {
+	return TestDataList{}
+}
+
+func (TestDataList) TableName() string {
+	return "testdata"
+}
+
+func (TestDataList) Complete() error {
+	return nil
+}
+
+func (TestDataList) Hasher() error {
+	return nil
+}
+
+func (TestDataList) Prepare() error {
+	return nil
+}
+
+func (e TestDataList) Users(u ...uint) []uint {
+	return []uint{}
+}
+
+func (e TestDataList) Groups(g ...uint) []uint {
+	return []uint{}
+}
+
+func (TestDataList) IDValue(...uint) uint {
+	return 0
+}
+
+func (e TestDataList) Owner(o ...uint) uint {
+	return 0
+}
+
+func (e TestDataList) Permissions(p ...string) string {
+	return ""
+}
+
+func (e TestDataList) UniqueCode(uc ...string) string {
+	return ""
+}
+
+func testCleanup(t *testing.T, uri string) *sql.DB {
+	db, err := sql.Open("mysql", uri)
 	if err != nil {
 		t.Error(err)
 	}
-	defer db.Close()
 
 	db.Exec("DROP TABLE users")
 	db.Exec("DROP TABLE groups")
@@ -237,4 +284,16 @@ func testCleanup(t *testing.T) {
 	db.Exec("DROP TABLE record_users")
 
 	db.Exec("DROP TABLE testdata")
+
+	return db
+}
+
+func testSetup(db *sql.DB, t *testing.T, qs ...string) {
+	for _, q := range qs {
+		fmt.Println("running", q)
+		_, err := db.Exec(q)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
 }

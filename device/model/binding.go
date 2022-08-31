@@ -18,6 +18,7 @@ func (m *Default) bind() error {
 	}
 
 	if matches[3] != "" {
+		fmt.Println("\nbinding UC", matches[2])
 		m.Data().UniqueCode(matches[2])
 	}
 
@@ -27,6 +28,8 @@ func (m *Default) bind() error {
 	}
 	return nil
 }
+
+// https://goplay.tools/snippet/b8SCuY4c0bI
 
 func (m *Default) structBind(s interface{}) error {
 	t := reflect.TypeOf(s).Elem()

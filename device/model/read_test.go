@@ -1,21 +1,22 @@
 package model_test
 
 import (
-	"database/sql"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 
 	"github.com/oligoden/chassis/storage/gosql"
 )
 
 func TestRead(t *testing.T) {
-	testCleanup(t)
-	db, err := sql.Open(dbt, uri)
-	if err != nil {
-		t.Fatal(err)
-	}
+	uri := "chassis:password@tcp(localhost:3309)/chassis?charset=utf8&parseTime=True&loc=Local"
+
+	db := testCleanup(t, uri)
 	defer db.Close()
+
+	qs := []string{}
 
 	q := "CREATE TABLE `testdata` ("
 	q += " `field` varchar(255),"
@@ -23,16 +24,17 @@ func TestRead(t *testing.T) {
 	q += " `id` int unsigned AUTO_INCREMENT,"
 	q += " `uc` varchar(255) UNIQUE,"
 	q += " `owner_id` int unsigned, `perms` varchar(255), `hash` varchar(255), PRIMARY KEY (`id`))"
-	_, err = db.Exec(q)
-	if err != nil {
-		t.Fatal(err)
-	}
+	qs = append(qs, q)
 
-	q = "INSERT INTO `testdata` (`field`, `date`, `uc`, `owner_id`, `perms`, `hash`) VALUES ('a', '2021-03-01', 'xx', 1, ':::', 'xyz')"
-	_, err = db.Exec(q)
-	if err != nil {
-		t.Fatal(err)
-	}
+	q = "INSERT INTO `testdata` (`field`, `date`, `uc`, `owner_id`, `perms`, `hash`)"
+	q += " VALUES ('a', '2021-03-01', 'xx', 1, ':::', 'xyz')"
+	qs = append(qs, q)
+
+	q = "INSERT INTO `testdata` (`field`, `date`, `uc`, `owner_id`, `perms`, `hash`)"
+	q += " VALUES ('b', '2021-03-01', 'yy', 1, ':::', 'dfg')"
+	qs = append(qs, q)
+
+	testSetup(db, t, qs...)
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	req.Header.Set("X_user", "1")
@@ -44,19 +46,35 @@ func TestRead(t *testing.T) {
 	m.Data(e)
 
 	m.Read()
-	if m.Err() != nil {
-		t.Error(m.Err())
-	}
 
-	exp := "a"
-	got := e.Field
-	if got != exp {
-		t.Errorf(`expected "%s", got "%s"`, exp, got)
-	}
+	assert := assert.New(t)
+	assert.NoError(m.Err())
+	assert.NotEmpty(e.Field)
+	assert.Equal("2021-03-01", e.Date.Format("2006-01-02"))
 
-	exp = "2021-03-01"
-	got = e.Date.Format("2006-01-02")
-	if got != exp {
-		t.Errorf(`expected "%s", got "%s"`, exp, got)
-	}
+	req = httptest.NewRequest(http.MethodGet, "/testdata/xx", nil)
+	req.Header.Set("X_user", "1")
+	req.Header.Set("X_session", "1")
+
+	m = NewModel(req, s)
+	e = &TestData{}
+	m.Data(e)
+	m.Bind()
+	m.Read()
+
+	assert.NoError(m.Err())
+	assert.Equal("a", e.Field)
+
+	req = httptest.NewRequest(http.MethodGet, "/testdata/yy", nil)
+	req.Header.Set("X_user", "1")
+	req.Header.Set("X_session", "1")
+
+	m = NewModel(req, s)
+	e = &TestData{}
+	m.Data(e)
+	m.Bind()
+	m.Read()
+
+	assert.NoError(m.Err())
+	assert.Equal("b", e.Field)
 }

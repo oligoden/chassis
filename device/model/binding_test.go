@@ -11,7 +11,7 @@ import (
 func TestBindTime(t *testing.T) {
 	f := make(url.Values)
 	f.Set("date", "2021-03-01 00:00:00")
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/tests", strings.NewReader(f.Encode()))
+	req := httptest.NewRequest(http.MethodPost, "/tests", strings.NewReader(f.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("X_user", "1")
 	req.Header.Set("X_session", "1")
@@ -34,7 +34,7 @@ func TestBindTime(t *testing.T) {
 func TestBindDateOnly(t *testing.T) {
 	f := make(url.Values)
 	f.Set("date", "2021-03-01")
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/tests", strings.NewReader(f.Encode()))
+	req := httptest.NewRequest(http.MethodPost, "/tests", strings.NewReader(f.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("X_user", "1")
 	req.Header.Set("X_session", "1")
@@ -53,3 +53,17 @@ func TestBindDateOnly(t *testing.T) {
 		t.Errorf(`expected "%s", got "%s"`, exp, got)
 	}
 }
+
+// func TestBindMap(t *testing.T) {
+// 	req := httptest.NewRequest(http.MethodGet, "/tests", nil)
+// 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+// 	req.Header.Set("X_user", "1")
+// 	req.Header.Set("X_session", "1")
+
+// 	m := NewModel(req, nil)
+// 	e := NewTestDataList()
+// 	e["xx"] = *NewTestData()
+// 	m.Data(e)
+// 	m.Bind()
+// 	assert.NoError(t, m.Err())
+// }

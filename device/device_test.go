@@ -18,11 +18,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const (
-	dbt = "mysql"
-	uri = "chassis:password@tcp(localhost:3309)/chassis?charset=utf8&parseTime=True&loc=Local"
-)
-
 func TestCreate(t *testing.T) {
 	uri := "chassis:password@tcp(localhost:3309)/chassis?charset=utf8&parseTime=True&loc=Local"
 
@@ -84,7 +79,7 @@ func TestRead(t *testing.T) {
 
 	apitest.New().
 		Handler(d.Read()).
-		Get("/").
+		Get("/model/xx").
 		Header("X_user", "1").
 		Header("X_session", "1").
 		Expect(t).
@@ -92,7 +87,20 @@ func TestRead(t *testing.T) {
 		Assert(
 			jsonpath.Chain().
 				Equal("field", "a").
-				Equal("date", "2021-03-01").
+				End(),
+		).
+		End()
+
+	apitest.New().
+		Handler(d.Read()).
+		Get("/model").
+		Header("X_user", "1").
+		Header("X_session", "1").
+		Expect(t).
+		Status(http.StatusOK).
+		Assert(
+			jsonpath.Chain().
+				Present("xx").
 				End(),
 		).
 		End()
@@ -115,7 +123,7 @@ func TestUpdate(t *testing.T) {
 
 	apitest.New().
 		Handler(d.Update()).
-		Put("/testdata").
+		Put("/testdata/xx").
 		FormData("field", "b").
 		Header("X_user", "1").
 		Header("X_session", "1").
@@ -204,9 +212,16 @@ func NewModel(r *http.Request, s model.Connector) *Model {
 	m.Request = r
 	m.Store = s
 	m.BindUser()
-	m.NewData = func() data.Operator { return NewTestData() }
 	m.Data(NewTestData())
 	return m
+}
+
+func (m *Model) NewData(ds ...string) {
+	if len(ds) > 0 {
+		if ds[0] == "list" {
+			m.Data(NewTestDataList())
+		}
+	}
 }
 
 type View struct {
@@ -244,6 +259,52 @@ func (TestData) TableName() string {
 // 	}
 // 	return e.ID
 // }
+
+type TestDataList map[string]TestData
+
+func (TestDataList) TableName() string {
+	return "testdata"
+}
+
+func (e TestDataList) Permissions(p ...string) string {
+	return ""
+}
+
+func (e TestDataList) Owner(o ...uint) uint {
+	return 0
+}
+
+func (e TestDataList) Users(u ...uint) []uint {
+	return []uint{}
+}
+
+func (e TestDataList) Groups(g ...uint) []uint {
+	return []uint{}
+}
+
+func (TestDataList) IDValue(...uint) uint {
+	return 0
+}
+
+func (e TestDataList) UniqueCode(uc ...string) string {
+	return ""
+}
+
+func NewTestDataList() TestDataList {
+	return TestDataList{}
+}
+
+func (TestDataList) Complete() error {
+	return nil
+}
+
+func (TestDataList) Hasher() error {
+	return nil
+}
+
+func (TestDataList) Prepare() error {
+	return nil
+}
 
 func (e TestData) MarshalJSON() ([]byte, error) {
 	type Alias TestData

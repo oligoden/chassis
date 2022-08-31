@@ -1,7 +1,6 @@
 package model_test
 
 import (
-	"database/sql"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -12,12 +11,12 @@ import (
 )
 
 func TestDelete(t *testing.T) {
-	testCleanup(t)
-	db, err := sql.Open(dbt, uri)
-	if err != nil {
-		t.Fatal(err)
-	}
+	uri := "chassis:password@tcp(localhost:3309)/chassis?charset=utf8&parseTime=True&loc=Local"
+
+	db := testCleanup(t, uri)
 	defer db.Close()
+
+	qs := []string{}
 
 	q := "CREATE TABLE `testdata` ("
 	q += " `field` varchar(255),"
@@ -25,16 +24,12 @@ func TestDelete(t *testing.T) {
 	q += " `id` int unsigned AUTO_INCREMENT,"
 	q += " `uc` varchar(255) UNIQUE,"
 	q += " `owner_id` int unsigned, `perms` varchar(255), `hash` varchar(255), PRIMARY KEY (`id`))"
-	_, err = db.Exec(q)
-	if err != nil {
-		t.Fatal(err)
-	}
+	qs = append(qs, q)
 
 	q = "INSERT INTO `testdata` (`field`, `uc`, `owner_id`, `perms`, `hash`) VALUES ('a', 'xx', 1, ':::', 'xyz')"
-	_, err = db.Exec(q)
-	if err != nil {
-		t.Fatal(err)
-	}
+	qs = append(qs, q)
+
+	testSetup(db, t, qs...)
 
 	f := make(url.Values)
 	f.Set("field", "test")
@@ -76,7 +71,7 @@ func TestDelete(t *testing.T) {
 	}
 
 	var field string
-	err = db.QueryRow("SELECT field from testdata").Scan(&field)
+	err := db.QueryRow("SELECT field from testdata").Scan(&field)
 	if err == nil {
 		t.Error("expected no results")
 	}

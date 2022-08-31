@@ -35,12 +35,12 @@ type Communicator interface {
 
 type DataSelector interface {
 	Data(...data.Operator) data.Operator
+	NewData(...string)
 }
 
 type Default struct {
-	Request *http.Request        `json:"-"`
-	NewData func() data.Operator `json:"-"`
-	Hash    string               `json:"hash"`
+	Request *http.Request `json:"-"`
+	Hash    string        `json:"hash"`
 	sesh    uint
 	user    uint
 	groups  []uint
@@ -151,6 +151,8 @@ func (m *Default) Data(d ...data.Operator) data.Operator {
 	return m.data
 }
 
+func (m *Default) NewData(ds ...string) {}
+
 func (m *Default) Hasher() {
 	json, err := json.Marshal(m.data)
 	if err != nil {
@@ -232,7 +234,13 @@ func (m *Default) Read() {
 	}
 
 	c := m.Store.Connect(m.User())
+
+	if m.data.UniqueCode() != "" {
+		w := gosql.NewWhere("uc = ?", m.data.UniqueCode())
+		c.AddModifiers(w)
+	}
 	c.Read(m.data)
+
 	err := c.Err()
 	if err != nil {
 		m.Err(err)
