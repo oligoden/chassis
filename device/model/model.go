@@ -45,6 +45,7 @@ type Default struct {
 	user    uint
 	groups  []uint
 	err     []error
+	urlbase string
 	data    data.Operator
 	Store   Connector
 }
@@ -60,6 +61,10 @@ func (m Default) User() (uint, []uint) {
 
 func (m Default) Session() uint {
 	return m.sesh
+}
+
+func (m *Default) SetBaseURL(base string) {
+	m.urlbase = base
 }
 
 func (m *Default) BindUser(usg ...uint) {
@@ -187,47 +192,6 @@ func (m *Default) Err(es ...interface{}) error {
 	return m.err[0]
 }
 
-func (m *Default) Create() {
-	if m.Err() != nil {
-		return
-	}
-
-	err := m.data.Prepare()
-	if err != nil {
-		m.Err(err)
-		return
-	}
-
-	c := m.Store.Connect(m.User())
-	c.Create(m.data)
-	err = c.Err()
-	if err != nil {
-		m.Err(err)
-		return
-	}
-
-	err = m.data.Hasher()
-	if err != nil {
-		m.Err(err)
-		return
-	}
-
-	c.Update(m.data)
-	err = c.Err()
-	if err != nil {
-		m.Err(err)
-		return
-	}
-
-	err = m.data.Complete()
-	if err != nil {
-		m.Err(err)
-		return
-	}
-
-	m.Hasher()
-}
-
 func (m *Default) Read() {
 	if m.Err() != nil {
 		return
@@ -242,40 +206,6 @@ func (m *Default) Read() {
 	c.Read(m.data)
 
 	err := c.Err()
-	if err != nil {
-		m.Err(err)
-		return
-	}
-
-	err = m.data.Complete()
-	if err != nil {
-		m.Err(err)
-		return
-	}
-
-	m.Hasher()
-}
-
-func (m *Default) Update() {
-	if m.Err() != nil {
-		return
-	}
-
-	err := m.data.Prepare()
-	if err != nil {
-		m.Err(err)
-		return
-	}
-
-	err = m.data.Hasher()
-	if err != nil {
-		m.Err(err)
-		return
-	}
-
-	c := m.Store.Connect(m.User())
-	c.Update(m.data)
-	err = c.Err()
 	if err != nil {
 		m.Err(err)
 		return
